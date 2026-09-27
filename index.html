@@ -137,10 +137,165 @@
         </div>
     </div>
 
-    <script>
-        // --- Firebaseの設定 ---
-        const firebaseConfig = {
-            databaseURL: " https://liola-army-jinro-default-rtdb.firebaseio.com/" // ★ここを自分のURLに書き換える
+    <script src="https://gstatic.com"></script>
+<script src="https://gstatic.com"></script>
+
+<script>
+    // --- Firebaseの設定 ---
+    const firebaseConfig = {
+        databaseURL: "https://firebaseio.com"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    let roomId = "";
+    let myName = "";
+    let isHost = false;
+
+    // 【部屋を作る（親）ボタン】
+    function createRoom() {
+        myName = document.getElementById('playerName').value.trim();
+        if (!myName) { alert('名前を入力してください！'); return; }
+
+        roomId = Math.floor(1000 + Math.random() * 9000).toString();
+        isHost = true;
+
+        document.getElementById('homeScreen').classList.add('hidden');
+        document.getElementById('roomScreen').classList.remove('hidden');
+        document.getElementById('hostSection').classList.remove('hidden');
+        document.getElementById('displayRoomId').innerText = roomId;
+
+        database.ref('rooms/' + roomId).set({
+            host: myName,
+            status: "waiting"
+        });
+
+        joinMember();
+        listenRoom();
+    }
+
+    // 【部屋に入る（子）ボタン】
+    function joinRoom() {
+        myName = document.getElementById('playerName').value.trim();
+        roomId = document.getElementById('roomInput').value.trim();
+        if (!myName || !roomId) { alert('名前と部屋番号を入力してください！'); return; }
+
+        isHost = false;
+
+        database.ref('rooms/' + roomId).once('value', (snapshot) => {
+            if (!snapshot.exists()) {
+                alert('その部屋は見つかりません。');
+                return;
+            }
+            document.getElementById('homeScreen').classList.add('hidden');
+            document.getElementById('roomScreen').classList.remove('hidden');
+            document.getElementById('guestSection').classList.remove('hidden');
+            document.getElementById('displayRoomId').innerText = roomId;
+
+            joinMember();
+            listenRoom();
+        });
+    }
+
+    function joinMember() {
+        database.ref('rooms/' + roomId + '/members/' + myName).set({
+            confirmed: false
+        });
+    }
+
+    function listenRoom() {
+        database.ref('rooms/' + roomId + '/members').on('value', (snapshot) => {
+            const members = snapshot.val() || {};
+            const listDiv = document.getElementById('memberList');
+            if (listDiv) {
+                listDiv.innerHTML = "";
+                for (let name in members) {
+                    listDiv.innerHTML += `<span class="member-badge">${name}</span>`;
+                }
+            }
+        });
+
+        database.ref('rooms/' + roomId + '/status').on('value', (snapshot) => {
+            if (snapshot.val() === "assigned") {
+                getSummary();
+            }
+        });
+    }
+
+    // 【役職を配るボタン（親のみ）】
+    function lockAndAssign() {
+        if (!isHost) return;
+
+        const roles = {
+            '人狼': parseInt(document.getElementById('num_jinro').value) || 0,
+            '村人': parseInt(document.getElementById('num_murabito').value) || 0,
+            '狂人': parseInt(document.getElementById('num_kyojin').value) || 0,
+            '占い師': parseInt(document.getElementById('num_uranaishi').value) || 0,
+            '裁判官': parseInt(document.getElementById('num_saibankan').value) || 0,
+            'スペシャルマン': parseInt(document.getElementById('num_specialman').value) || 0
         };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database()
+
+        let roleArray = [];
+        for (let role in roles) {
+            for (let i = 0; i < roles[role]; i++) {
+                roleArray.push(role);
+            }
+        }
+
+        database.ref('rooms/' + roomId + '/members').once('value', (snapshot) => {
+            const members = snapshot.val();
+            const memberNames = Object.keys(members);
+
+            if (roleArray.length < memberNames.length) {
+                alert('役職の数が足りません！');
+                return;
+            }
+
+            roleArray.sort(() => Math.random() - 0.5);
+
+            let updates = {};
+            memberNames.forEach((name, index) => {
+                updates['rooms/' + roomId + '/members/' + name + '/role'] = roleArray[index];
+            });
+            updates['rooms/' + roomId + '/status'] = "assigned";
+
+            database.ref().update(updates);
+        });
+    }
+
+    function getSummary() {
+        database.ref('rooms/' + roomId + '/members/' + myName + '/role').once('value', (snapshot) => {
+            const myRole = snapshot.val();
+            const resultScreen = document.getElementById('result-screen');
+            if (resultScreen) {
+                resultScreen.classList.add('active');
+            }
+        });
+    }
+
+    // 【役職詳細ポップアップを表示する処理】
+    function showDesc(roleName) {
+        const descs = {
+            '人狼': '【人狼陣営】\n\n◆勝利条件：\nわざと自分のチームを負けさせれば勝ち。\n\n◆獲得ポイント：\n・試合に勝利：-1\n・バレずに試合に敗北：+3\n・バレて試合に敗北：+1',
+            
+            '村人': '【村人陣営】\n\n◆勝利条件：\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n◆獲得ポイント：\n・試合に勝利：+2',
+            
+            '狂人': '【人狼・第3陣営】\n\n◆勝利条件：\n自分に最も多く票を集めれば勝ち。\n\n◆獲得ポイント：\n・最も票を集める：+4',
+            
+            '占い師': '【村人陣営】\n\n◆勝利条件：\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n◆特殊能力（7キルで発動）：\n指定した1人の役職をその場で発表してもらう。\n\n◆獲得ポイント：\n・試合に勝利：+2',
+            
+            '裁判官': '【村人陣営】\n\n◆勝利条件：\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n◆特殊能力（5キルで発動）：\n・1試合目と2試合目の間のみ発動可能。\n・票が多かった人は次の試合に参加できない。\n・人狼が1人で人狼が釣られた場合、その場で終了となり村人陣営に1ポイント入る。\n\n◆獲得ポイント：\n・試合に勝利：+2',
+            
+            'スペシャルマン': '【第三陣営】\n\n◆役割：\nポイントを集めるための役職。第三陣営なので、人狼・村人のどちらに味方しても良い。\n\n◆獲得ポイント：\n・2試合ではいたスペシャルの数がポイントになる。'
+        };
+        
+        document.getElementById('modalRoleName').innerText = roleName;
+        document.getElementById('modalDesc').innerText = descs[roleName] || "説明がありません。";
+        document.getElementById('descModal').classList.add('active');
+    }
+
+    function closeDesc() {
+        document.getElementById('descModal').classList.remove('active');
+    }
+</script>
+

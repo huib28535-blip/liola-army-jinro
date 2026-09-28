@@ -1,4 +1,281 @@
-  function getSummary() {
+サイト（完全版）
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>オンライン人狼役職配り</title>
+    <!-- Firebaseの読み込み -->
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
+    <style>
+        body { background-color: #121212; color: #ffffff; font-family: sans-serif; text-align: center; padding: 20px; margin: 0; overflow-y: auto; }
+        h1 { color: #e74c3c; font-size: 24px; margin-bottom: 5px; text-shadow: 0 0 10px rgba(231,76,60,0.4); }
+        .panel { background: #1e1e1e; padding: 20px; border-radius: 10px; max-width: 440px; margin: 20px auto; border: 1px solid #333; box-shadow: 0 4px 10px rgba(0,0,0,0.5); box-sizing: border-box; }
+        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 5px; border: none; font-size: 16px; box-sizing: border-box; }
+        input { background: #2a2a2a; color: white; border: 1px solid #444; }
+        button { background: #e74c3c; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #555; color: #888; cursor: not-allowed; }
+        .hidden { display: none !important; }
+        
+        /* 役職設定エリア */
+        .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; text-align: left; }
+        .role-item { background: #2a2a2a; padding: 8px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; border: 1px solid #444; }
+        .role-item input { width: 50px; padding: 6px; margin: 0; text-align: center; font-size: 14px; }
+        
+        .member-badge { display: inline-block; background: #2980b9; padding: 6px 12px; border-radius: 20px; margin: 5px; font-weight: bold; }
+        
+        /* ホーム画面の役職一覧 */
+        .info-title { color: #888; font-size: 14px; margin-top: 40px; margin-bottom: 10px; letter-spacing: 2px; }
+        .role-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 440px; margin: 0 auto 40px auto; }
+        .role-card { background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 15px; cursor: pointer; font-weight: bold; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .role-card:hover { transform: translateY(-2px); background: #252525; }
+        
+        /* --- 詳細ポップアップ（背景の黒い影） --- */
+        .modal-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.75); display: flex; justify-content: center; align-items: center; 
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; 
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        
+        /* ポップアップの中身：下からふわっと出て、常にゆらゆら浮遊するアニメーションを追加 */
+        .modal-content { 
+            background: #1e1e1e; border: 2px solid #444; padding: 25px; border-radius: 12px; 
+            max-width: 320px; width: 85%; box-shadow: 0 10px 30px rgba(0,0,0,0.6); text-align: center;
+            transform: translateY(30px); opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.15), opacity 0.4s ease;
+        }
+        /* ポップアップがアクティブ（開いた）になった時：下から浮き上がる */
+        .modal-overlay.active .modal-content { 
+            transform: translateY(0); opacity: 1; 
+            /* 開ききったら自動で「ふわふわ上下に揺れる」アニメーションに切り替える */
+            animation: floatCard 3s ease-in-out infinite alternate;
+        }
+
+        /* 役職カードが上下にふわふわ動くループアニメーションの設定 */
+        @keyframes floatCard {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-10px); } /* ゆっくり10ピクセル上に浮き上がる */
+        }
+
+        .modal-role-name { font-size: 28px; font-weight: bold; margin-bottom: 15px; text-shadow: 0 0 10px rgba(255,255,255,0.1); }
+        .modal-desc { font-size: 14px; color: #ccc; line-height: 1.6; margin-bottom: 20px; text-align: left; white-space: pre-wrap; }
+        .close-btn { background: #444; font-size: 14px; padding: 8px; width: auto; min-width: 100px; display: inline-block; margin: 0; }
+
+        /* 暗転からのフェードイン結果画面 */
+        .result-screen { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background-color: #000000; z-index: 90;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: opacity 1.5s ease-in-out; 
+        }
+        .result-screen.active { opacity: 1; pointer-events: auto; }
+        
+        .result-content { opacity: 0; transition: opacity 1.2s ease-in-out 1.2s; text-align: center; }
+        .result-screen.active .result-content { opacity: 1; }
+
+        .illust-container { margin-top: 15px; min-height: 220px; display: flex; justify-content: center; align-items: center; }
+        .illust-img { width: 75vw; max-width: 260px; height: auto; border-radius: 12px; display: block; }
+        .no-img-box { width: 75vw; max-width: 260px; height: 200px; border: 2px dashed #333; border-radius: 12px; display: flex; justify-content: center; align-items: center; color: #555; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div id="mainContainer">
+        <h1>人狼役職配りシステム</h1>
+
+        <!-- 1. ホーム画面 -->
+        <div id="homeScreen" class="panel">
+            <input type="text" id="playerName" placeholder="あなたの名前" maxlength="8">
+            <hr style="border-color:#333; margin:15px 0;">
+            <button onclick="createRoom()">部屋を作る（親）</button>
+            <div style="margin: 10px 0; color:#888;">または</div>
+            <input type="number" id="roomInput" placeholder="部屋番号（4桁）">
+            <button onclick="joinRoom()" style="background:#27ae60;">部屋に入る（子）</button>
+            
+            <div class="info-title">▼ スクロールで役職一覧 ▼</div>
+            <div class="role-list">
+                <div class="role-card" style="color: #e74c3c; border-color: #e74c3c;" onclick="showDesc('人狼')">人狼</div>
+                <div class="role-card" style="color: #2ecc71; border-color: #2ecc71;" onclick="showDesc('村人')">村人</div>
+                <div class="role-card" style="color: #e67e22; border-color: #e67e22;" onclick="showDesc('狂人')">狂人</div>
+                <div class="role-card" style="color: #9b59b6; border-color: #9b59b6;" onclick="showDesc('占い師')">占い師</div>
+                <div class="role-card" style="color: #f1c40f; border-color: #f1c40f;" onclick="showDesc('裁判官')">裁判官</div>
+                <div class="role-card" style="color: #e84393; border-color: #e84393;" onclick="showDesc('スペシャルマン')">スペシャルマン</div>
+            </div>
+        </div>
+
+        <!-- 2. 待機部屋画面 -->
+        <div id="roomScreen" class="panel hidden">
+            <h2>部屋番号: <span id="displayRoomId" style="color:#e74c3c;">0000</span></h2>
+            <div id="hostSection" class="hidden">
+                <p style="color:#aaa; font-size:14px; margin-bottom:5px;">使う役職の数を指定してください：</p>
+                <div class="role-grid">
+                    <div class="role-item"><span>人狼:</span><input type="number" id="num_jinro" value="1" min="0"></div>
+                    <div class="role-item"><span>村人:</span><input type="number" id="num_murabito" value="1" min="0"></div>
+                    <div class="role-item"><span>狂人:</span><input type="number" id="num_kyojin" value="0" min="0"></div>
+                    <div class="role-item"><span>占い師:</span><input type="number" id="num_uranaishi" value="0" min="0"></div>
+                    <div class="role-item"><span>裁判官:</span><input type="number" id="num_saibankan" value="0" min="0"></div>
+                    <div class="role-item"><span>スペシャルマン:</span><input type="number" id="num_specialman" value="0" min="0"></div>
+                </div>
+                <button onclick="lockAndAssign()" style="background:#f39c12; margin-top:10px;">役職を配る（スタート）</button>
+            </div>
+            <div id="guestSection" class="hidden">
+                <p style="color:#aaa;">部屋主がスタートするのを待っています...</p>
+            </div>
+            <p style="text-align:left; color:#888; font-size:14px; margin-top:20px; border-top:1px solid #333; padding-top:15px;">参加メンバー：</p>
+            <div id="memberList"></div>
+        </div>
+    </div>
+
+    <!-- 3. タメ演出結果画面 -->
+    <div id="resultScreen" class="result-screen">
+        <div class="result-content">
+            <h2 style="font-size: 18px; color:#e74c3c; margin-bottom:10px; letter-spacing:3px;">あなたの役職は、、、</h2>
+            <div style="font-size: 34px; font-weight:bold; margin-bottom:15px; letter-spacing:2px;" id="roleTitle">役職名</div>
+            <div class="illust-container" id="illustContainer"></div>
+            <button onclick="backToRoom()" style="background:#222; border: 1px solid #444; color:#aaa; margin-top:30px; font-size:13px; padding:8px; width:auto; min-width:120px;">部屋に戻る</button>
+        </div>
+    </div>
+
+    <!-- 4. 役職詳細ポップアップ -->
+    <div id="descModal" class="modal-overlay" onclick="closeDesc()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div id="modalRoleName" class="modal-role-name">役職名</div>
+            <div id="modalDesc" class="modal-desc">説明文</div>
+            <button class="close-btn" onclick="closeDesc()">閉じる</button>
+        </div>
+    </div>
+
+<script src="https://gstatic.com"></script>
+<script src="https://gstatic.com"></script>
+
+<script>
+    // --- Firebaseの設定 ---
+    const firebaseConfig = {
+        databaseURL: "https://firebaseio.com"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    let roomId = "";
+    let myName = "";
+    let isHost = false;
+
+    // 【部屋を作る（親）ボタン】
+    function createRoom() {
+        myName = document.getElementById('playerName').value.trim();
+        if (!myName) { alert('名前を入力してください！'); return; }
+
+        roomId = Math.floor(1000 + Math.random() * 9000).toString();
+        isHost = true;
+
+        document.getElementById('homeScreen').classList.add('hidden');
+        document.getElementById('roomScreen').classList.remove('hidden');
+        document.getElementById('hostSection').classList.remove('hidden');
+        document.getElementById('displayRoomId').innerText = roomId;
+
+        database.ref('rooms/' + roomId).set({
+            host: myName,
+            status: "waiting"
+        });
+
+        joinMember();
+        listenRoom();
+    }
+
+    // 【部屋に入る（子）ボタン】
+    function joinRoom() {
+        myName = document.getElementById('playerName').value.trim();
+        roomId = document.getElementById('roomInput').value.trim();
+        if (!myName || !roomId) { alert('名前と部屋番号を入力してください！'); return; }
+
+        isHost = false;
+
+        database.ref('rooms/' + roomId).once('value', (snapshot) => {
+            if (!snapshot.exists()) {
+                alert('その部屋は見つかりません。');
+                return;
+            }
+            document.getElementById('homeScreen').classList.add('hidden');
+            document.getElementById('roomScreen').classList.remove('hidden');
+            document.getElementById('guestSection').classList.remove('hidden');
+            document.getElementById('displayRoomId').innerText = roomId;
+
+            joinMember();
+            listenRoom();
+        });
+    }
+
+    function joinMember() {
+        database.ref('rooms/' + roomId + '/members/' + myName).set({
+            confirmed: false
+        });
+    }
+
+    function listenRoom() {
+        database.ref('rooms/' + roomId + '/members').on('value', (snapshot) => {
+            const members = snapshot.val() || {};
+            const listDiv = document.getElementById('memberList');
+            if (listDiv) {
+                listDiv.innerHTML = "";
+                for (let name in members) {
+                    listDiv.innerHTML += `<span class="member-badge">${name}</span>`;
+                }
+            }
+        });
+
+        database.ref('rooms/' + roomId + '/status').on('value', (snapshot) => {
+            if (snapshot.val() === "assigned") {
+                getSummary();
+            }
+        });
+    }
+
+    // 【役職を配るボタン（親のみ）】
+    function lockAndAssign() {
+        if (!isHost) return;
+
+        const roles = {
+            '人狼': parseInt(document.getElementById('num_jinro').value) || 0,
+            '村人': parseInt(document.getElementById('num_murabito').value) || 0,
+            '狂人': parseInt(document.getElementById('num_kyojin').value) || 0,
+            '占い師': parseInt(document.getElementById('num_uranaishi').value) || 0,
+            '裁判官': parseInt(document.getElementById('num_saibankan').value) || 0,
+            'スペシャルマン': parseInt(document.getElementById('num_specialman').value) || 0
+        };
+
+        let roleArray = [];
+        for (let role in roles) {
+            for (let i = 0; i < roles[role]; i++) {
+                roleArray.push(role);
+            }
+        }
+
+        database.ref('rooms/' + roomId + '/members').once('value', (snapshot) => {
+            const members = snapshot.val();
+            const memberNames = Object.keys(members);
+
+            if (roleArray.length < memberNames.length) {
+                alert('役職の数が足りません！');
+                return;
+            }
+
+            roleArray.sort(() => Math.random() - 0.5);
+
+            let updates = {};
+            memberNames.forEach((name, index) => {
+                updates['rooms/' + roomId + '/members/' + name + '/role'] = roleArray[index];
+            });
+            updates['rooms/' + roomId + '/status'] = "assigned";
+
+            database.ref().update(updates);
+        });
+    }
+
+    function getSummary() {
         database.ref('rooms/' + roomId + '/members/' + myName + '/role').once('value', (snapshot) => {
             const myRole = snapshot.val();
             const resultScreen = document.getElementById('result-screen');

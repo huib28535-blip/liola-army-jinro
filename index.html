@@ -1,312 +1,717 @@
-サイト（完全版）
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>オンライン人狼役職配り</title>
-    <!-- Firebaseの読み込み -->
+    <!-- Firebase (v9互換) の読み込み -->
     <script src="https://gstatic.com"></script>
     <script src="https://gstatic.com"></script>
     <style>
-        body { background-color: #121212; color: #ffffff; font-family: sans-serif; text-align: center; padding: 20px; margin: 0; overflow-y: auto; }
-        h1 { color: #e74c3c; font-size: 24px; margin-bottom: 5px; text-shadow: 0 0 10px rgba(231,76,60,0.4); }
-        .panel { background: #1e1e1e; padding: 20px; border-radius: 10px; max-width: 440px; margin: 20px auto; border: 1px solid #333; box-shadow: 0 4px 10px rgba(0,0,0,0.5); box-sizing: border-box; }
-        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 5px; border: none; font-size: 16px; box-sizing: border-box; }
-        input { background: #2a2a2a; color: white; border: 1px solid #444; }
-        button { background: #e74c3c; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { opacity: 0.9; }
-        button:disabled { background: #555; color: #888; cursor: not-allowed; }
-        .hidden { display: none !important; }
-        
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: sans-serif;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+            overflow-y: auto;
+        }
+        h1 {
+            color: #e74c3c;
+            font-size: 24px;
+            margin-bottom: 5px;
+            text-shadow: 0 0 10px rgba(231,76,60,0.4);
+        }
+        .panel {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 440px;
+            margin: 20px auto;
+            border: 1px solid #333;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+            position: relative;
+        }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 5px;
+            border: none;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input {
+            background: #2a2a2a;
+            color: white;
+            border: 1px solid #444;
+        }
+        button {
+            background: #e74c3c;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        button:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+        }
+        .hidden {
+            display: none !important;
+        }
+
         /* 役職設定エリア */
-        .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; text-align: left; }
-        .role-item { background: #2a2a2a; padding: 8px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; border: 1px solid #444; }
-        .role-item input { width: 50px; padding: 6px; margin: 0; text-align: center; font-size: 14px; }
-        
-        .member-badge { display: inline-block; background: #2980b9; padding: 6px 12px; border-radius: 20px; margin: 5px; font-weight: bold; }
-        
+        .role-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+            text-align: left;
+        }
+        .role-item {
+            background: #2a2a2a;
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            border: 1px solid #444;
+            cursor: pointer;
+        }
+        .role-item input {
+            width: 50px;
+            padding: 6px;
+            margin: 0;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        /* イラスト画像の共通スタイル（崩れ防止） */
+        .role-img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+        .reveal-img {
+            width: 140px;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 0 15px rgba(255,255,255,0.2);
+        }
+        .modal-img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .member-badge {
+            display: inline-block;
+            background: #2980b9;
+            padding: 6px 12px;
+            border-radius: 20px;
+            margin: 5px;
+            font-weight: bold;
+        }
+
         /* ホーム画面の役職一覧 */
-        .info-title { color: #888; font-size: 14px; margin-top: 40px; margin-bottom: 10px; letter-spacing: 2px; }
-        .role-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 440px; margin: 0 auto 40px auto; }
-        .role-card { background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 15px; cursor: pointer; font-weight: bold; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .role-card:hover { transform: translateY(-2px); background: #252525; }
-        
-        /* --- 詳細ポップアップ（背景の黒い影） --- */
-        .modal-overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.75); display: flex; justify-content: center; align-items: center; 
-            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; 
+        .info-title {
+            color: #888;
+            font-size: 14px;
+            margin-top: 40px;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
         }
-        .modal-overlay.active { opacity: 1; pointer-events: auto; }
-        
-        /* ポップアップの中身：下からふわっと出て、常にゆらゆら浮遊するアニメーションを追加 */
-        .modal-content { 
-            background: #1e1e1e; border: 2px solid #444; padding: 25px; border-radius: 12px; 
-            max-width: 320px; width: 85%; box-shadow: 0 10px 30px rgba(0,0,0,0.6); text-align: center;
-            transform: translateY(30px); opacity: 0;
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.15), opacity 0.4s ease;
+        .role-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            max-width: 440px;
+            margin: 0 auto 40px auto;
         }
-        /* ポップアップがアクティブ（開いた）になった時：下から浮き上がる */
-        .modal-overlay.active .modal-content { 
-            transform: translateY(0); opacity: 1; 
-            /* 開ききったら自動で「ふわふわ上下に揺れる」アニメーションに切り替える */
-            animation: floatCard 3s ease-in-out infinite alternate;
+        .role-card {
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .role-card:hover {
+            border-color: #e74c3c;
+            background: #252525;
+        }
+        .role-card .name {
+            font-weight: bold;
+            font-size: 14px;
         }
 
-        /* 役職カードが上下にふわふわ動くループアニメーションの設定 */
-        @keyframes floatCard {
-            0% { transform: translateY(0px); }
-            100% { transform: translateY(-10px); } /* ゆっくり10ピクセル上に浮き上がる */
+        /* 右上の小さな4桁の部屋番号 */
+        .room-number-display {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 12px;
+            color: #888;
+            letter-spacing: 1px;
+        }
+        /* 設定情報テキスト */
+        .setting-info {
+            background: #252525;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 15px 0;
+            text-align: left;
+            font-size: 14px;
+            border-left: 4px solid #e74c3c;
+        }
+        .setting-info div {
+            margin: 4px 0;
+        }
+        .status-alert {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .status-ok {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+        /* ゲストへのメッセージ */
+        .guest-waiting-msg {
+            color: #f39c12;
+            font-weight: bold;
+            margin: 20px 0;
+            font-size: 16px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
         }
 
-        .modal-role-name { font-size: 28px; font-weight: bold; margin-bottom: 15px; text-shadow: 0 0 10px rgba(255,255,255,0.1); }
-        .modal-desc { font-size: 14px; color: #ccc; line-height: 1.6; margin-bottom: 20px; text-align: left; white-space: pre-wrap; }
-        .close-btn { background: #444; font-size: 14px; padding: 8px; width: auto; min-width: 100px; display: inline-block; margin: 0; }
-
-        /* 暗転からのフェードイン結果画面 */
-        .result-screen { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background-color: #000000; z-index: 90;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            opacity: 0; pointer-events: none; transition: opacity 1.5s ease-in-out; 
+        /* 🎭 役職配布のドラマチック演出（全画面オーバーレイ） */
+        #reveal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 1s ease-in-out, visibility 1s;
+            padding: 20px;
+            box-sizing: border-box;
         }
-        .result-screen.active { opacity: 1; pointer-events: auto; }
-        
-        .result-content { opacity: 0; transition: opacity 1.2s ease-in-out 1.2s; text-align: center; }
-        .result-screen.active .result-content { opacity: 1; }
+        #reveal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .fade-in-text {
+            font-size: 20px;
+            color: #aaa;
+            margin-bottom: 20px;
+            opacity: 0;
+        }
+        .fade-in-illustration {
+            margin-bottom: 15px;
+            opacity: 0;
+        }
+        .fade-in-rolename {
+            font-size: 32px;
+            color: #e74c3c;
+            font-weight: bold;
+            margin-bottom: 30px;
+            opacity: 0;
+            text-shadow: 0 0 15px rgba(231,76,60,0.6);
+        }
+        .reveal-btn-container {
+            width: 100%;
+            max-width: 250px;
+            opacity: 0;
+        }
+        /* 演出用アニメーションクラス */
+        .animate-fade-in {
+            animation: fadeIn 1.2s forwards;
+        }
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
 
-        .illust-container { margin-top: 15px; min-height: 220px; display: flex; justify-content: center; align-items: center; }
-        .illust-img { width: 75vw; max-width: 260px; height: auto; border-radius: 12px; display: block; }
-        .no-img-box { width: 75vw; max-width: 260px; height: 200px; border: 2px dashed #333; border-radius: 12px; display: flex; justify-content: center; align-items: center; color: #555; font-size: 14px; }
+        /* 📋 役職詳細ポップアップモーダル */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.7);
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #222;
+            border: 1px solid #444;
+            padding: 25px;
+            border-radius: 12px;
+            max-width: 360px;
+            width: 85%;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.8);
+            animation: scaleUp 0.2s ease-out;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        @keyframes scaleUp {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-title {
+            font-size: 20px;
+            color: #e74c3c;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .modal-description {
+            font-size: 14px;
+            color: #ddd;
+            line-height: 1.6;
+            text-align: left;
+            background: #1a1a1a;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            max-height: 250px;
+            overflow-y: auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
 
-    <div id="mainContainer">
-        <h1>人狼役職配りシステム</h1>
+    <h1>オンライン人狼役職配り</h1>
 
-        <!-- 1. ホーム画面 -->
-        <div id="homeScreen" class="panel">
-            <input type="text" id="playerName" placeholder="あなたの名前" maxlength="8">
-            <hr style="border-color:#333; margin:15px 0;">
-            <button onclick="createRoom()">部屋を作る（親）</button>
-            <div style="margin: 10px 0; color:#888;">または</div>
-            <input type="number" id="roomInput" placeholder="部屋番号（4桁）">
-            <button onclick="joinRoom()" style="background:#27ae60;">部屋に入る（子）</button>
-            
-            <div class="info-title">▼ スクロールで役職一覧 ▼</div>
-            <div class="role-list">
-                <div class="role-card" style="color: #e74c3c; border-color: #e74c3c;" onclick="showDesc('人狼')">人狼</div>
-                <div class="role-card" style="color: #2ecc71; border-color: #2ecc71;" onclick="showDesc('村人')">村人</div>
-                <div class="role-card" style="color: #e67e22; border-color: #e67e22;" onclick="showDesc('狂人')">狂人</div>
-                <div class="role-card" style="color: #9b59b6; border-color: #9b59b6;" onclick="showDesc('占い師')">占い師</div>
-                <div class="role-card" style="color: #f1c40f; border-color: #f1c40f;" onclick="showDesc('裁判官')">裁判官</div>
-                <div class="role-card" style="color: #e84393; border-color: #e84393;" onclick="showDesc('スペシャルマン')">スペシャルマン</div>
-            </div>
+    <!-- 1. ホーム画面 -->
+    <div id="screen-home" class="panel">
+        <input type="text" id="player-name" placeholder="あなたのプレイヤー名">
+        <button id="btn-create-room" style="background: #27ae60; margin-top: 15px;">部屋を作る</button>
+        
+        <div style="margin: 15px 0; color: #888; font-size: 14px;">または</div>
+        
+        <input type="number" id="room-input" placeholder="4桁の部屋番号を入力">
+        <button id="btn-join-room">部屋に入って参加する</button>
+
+        <div class="info-title">役職一覧（タップで詳細を表示）</div>
+        <div class="role-list" id="home-role-list">
+            <!-- JavaScriptで自動生成されます -->
+        </div>
+    </div>
+
+    <!-- 2. ルーム画面（オーナー・参加者共通） -->
+    <div id="screen-room" class="panel hidden">
+        <!-- 右上の4桁部屋番号 -->
+        <div class="room-number-display">部屋番号: <span id="display-room-id">0000</span></div>
+        
+        <h2 id="room-role-title" style="font-size: 18px; margin-top: 10px; color: #3498db;">待機ロビー</h2>
+
+        <!-- 【共通】設定・人数ステータス表示 -->
+        <div class="setting-info">
+            <div>👥 参加人数: <span id="count-players">0</span> 人</div>
+            <div>🃏 選択された役職の合計: <span id="count-roles">0</span> 枚</div>
+            <div>⚠️ 人数チェック: <span id="status-toggle">OFF</span></div>
         </div>
 
-        <!-- 2. 待機部屋画面 -->
-        <div id="roomScreen" class="panel hidden">
-            <h2>部屋番号: <span id="displayRoomId" style="color:#e74c3c;">0000</span></h2>
-            <div id="hostSection" class="hidden">
-                <p style="color:#aaa; font-size:14px; margin-bottom:5px;">使う役職の数を指定してください：</p>
-                <div class="role-grid">
-                    <div class="role-item"><span>人狼:</span><input type="number" id="num_jinro" value="1" min="0"></div>
-                    <div class="role-item"><span>村人:</span><input type="number" id="num_murabito" value="1" min="0"></div>
-                    <div class="role-item"><span>狂人:</span><input type="number" id="num_kyojin" value="0" min="0"></div>
-                    <div class="role-item"><span>占い師:</span><input type="number" id="num_uranaishi" value="0" min="0"></div>
-                    <div class="role-item"><span>裁判官:</span><input type="number" id="num_saibankan" value="0" min="0"></div>
-                    <div class="role-item"><span>スペシャルマン:</span><input type="number" id="num_specialman" value="0" min="0"></div>
+        <div id="guest-notice" class="guest-waiting-msg hidden">オーナーが設定しています。開始をお待ちください...</div>
+
+        <div id="owner-settings-area" class="hidden">
+                        <div style="font-size: 14px; text-align: left; color: #aaa; margin-bottom: 5px;">役職配分設定（タップで詳細）</div>
+            <div class="role-grid">
+                <div class="role-item" onclick="handleRoleItemClick(event, '人狼')">
+                    <span>🐺 人狼</span>
+                    <input type="number" id="num-werewolf" value="1" min="0" onchange="calcRoleTotal()">
                 </div>
-                <button onclick="lockAndAssign()" style="background:#f39c12; margin-top:10px;">役職を配る（スタート）</button>
+                <div class="role-item" onclick="handleRoleItemClick(event, '狂人')">
+                    <span>🤡 狂人</span>
+                    <input type="number" id="num-madman" value="0" min="0" onchange="calcRoleTotal()">
+                </div>
+                <div class="role-item" onclick="handleRoleItemClick(event, '村人')">
+                    <span>🧑 村人</span>
+                    <input type="number" id="num-citizen" value="2" min="0" onchange="calcRoleTotal()">
+                </div>
+                <div class="role-item" onclick="handleRoleItemClick(event, '占い師')">
+                    <span>🔮 占い師</span>
+                    <input type="number" id="num-seer" value="1" min="0" onchange="calcRoleTotal()">
+                </div>
+                <div class="role-item" onclick="handleRoleItemClick(event, '裁判官')">
+                    <span>⚖️ 裁判官</span>
+                    <input type="number" id="num-judge" value="0" min="0" onchange="calcRoleTotal()">
+                </div>
+                <div class="role-item" onclick="handleRoleItemClick(event, 'スペシャルマン')">
+                    <span>🦸 スペシャル</span>
+                    <input type="number" id="num-specialman" value="0" min="0" onchange="calcRoleTotal()">
+                </div>
             </div>
-            <div id="guestSection" class="hidden">
-                <p style="color:#aaa;">部屋主がスタートするのを待っています...</p>
-            </div>
-            <p style="text-align:left; color:#888; font-size:14px; margin-top:20px; border-top:1px solid #333; padding-top:15px;">参加メンバー：</p>
-            <div id="memberList"></div>
+            <button id="btn-start-game" disabled>スタートボタン</button>
+        </div>
+
+        <div style="font-size: 14px; text-align: left; color: #aaa; margin-top: 15px;">参加中のプレイヤー:</div>
+        <div id="player-list-area" style="text-align: left; margin-bottom: 20px;"></div>
+        <button id="btn-reset-room" class="hidden" style="background: #34495e;">全員を部屋に戻る</button>
+    </div>
+
+    <!-- 🎭 役職配布のドラマチック演出画面（全画面フェードイン） -->
+    <div id="reveal-overlay">
+        <div class="fade-in-text" id="reveal-intro">あなたの役職は、、、</div>
+        <div class="fade-in-illustration" id="reveal-icon-wrap">
+            <img src="" id="reveal-img" class="reveal-img" alt="役職イラスト" style="display:none;">
+            <span id="reveal-emoji" style="font-size: 80px;">❓</span>
+        </div>
+        <div class="fade-in-rolename" id="reveal-name">役職名</div>
+        <div class="reveal-btn-container" id="reveal-btn-wrap">
+            <button id="btn-confirm-role" style="background: #2ecc71;">役職確認ボタン</button>
         </div>
     </div>
 
-    <!-- 3. タメ演出結果画面 -->
-    <div id="resultScreen" class="result-screen">
-        <div class="result-content">
-            <h2 style="font-size: 18px; color:#e74c3c; margin-bottom:10px; letter-spacing:3px;">あなたの役職は、、、</h2>
-            <div style="font-size: 34px; font-weight:bold; margin-bottom:15px; letter-spacing:2px;" id="roleTitle">役職名</div>
-            <div class="illust-container" id="illustContainer"></div>
-            <button onclick="backToRoom()" style="background:#222; border: 1px solid #444; color:#aaa; margin-top:30px; font-size:13px; padding:8px; width:auto; min-width:120px;">部屋に戻る</button>
-        </div>
-    </div>
-
-    <!-- 4. 役職詳細ポップアップ -->
-    <div id="descModal" class="modal-overlay" onclick="closeDesc()">
+    <!-- 📋 役職詳細ポップアップモーダル -->
+    <div id="detail-modal" class="modal-overlay hidden" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <div id="modalRoleName" class="modal-role-name">役職名</div>
-            <div id="modalDesc" class="modal-desc">説明文</div>
-            <button class="close-btn" onclick="closeDesc()">閉じる</button>
+            <div class="modal-illustration" id="modal-illustration" style="font-size: 60px; margin-bottom: 10px;">🐺</div>
+            <div class="modal-title" id="modal-title">役職名</div>
+            <div class="modal-description" id="modal-description">説明文</div>
+            <button onclick="closeModal()" style="background: #555; padding: 8px; margin: 0; width: 80px;">閉じる</button>
         </div>
     </div>
 
-<script src="https://gstatic.com"></script>
-<script src="https://gstatic.com"></script>
-
-<script>
-    // --- Firebaseの設定 ---
-    const firebaseConfig = {
-        databaseURL: "https://firebaseio.com"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-
-    let roomId = "";
-    let myName = "";
-    let isHost = false;
-
-    // 【部屋を作る（親）ボタン】
-    function createRoom() {
-        myName = document.getElementById('playerName').value.trim();
-        if (!myName) { alert('名前を入力してください！'); return; }
-
-        roomId = Math.floor(1000 + Math.random() * 9000).toString();
-        isHost = true;
-
-        document.getElementById('homeScreen').classList.add('hidden');
-        document.getElementById('roomScreen').classList.remove('hidden');
-        document.getElementById('hostSection').classList.remove('hidden');
-        document.getElementById('displayRoomId').innerText = roomId;
-
-        database.ref('rooms/' + roomId).set({
-            host: myName,
-            status: "waiting"
-        });
-
-        joinMember();
-        listenRoom();
-    }
-
-    // 【部屋に入る（子）ボタン】
-    function joinRoom() {
-        myName = document.getElementById('playerName').value.trim();
-        roomId = document.getElementById('roomInput').value.trim();
-        if (!myName || !roomId) { alert('名前と部屋番号を入力してください！'); return; }
-
-        isHost = false;
-
-        database.ref('rooms/' + roomId).once('value', (snapshot) => {
-            if (!snapshot.exists()) {
-                alert('その部屋は見つかりません。');
-                return;
+    <script>
+        // 役職ルール・説明文の設定
+        const ROLE_DETAILS = {
+            '人狼': { 
+                icon: '🐺', 
+                desc: '【人狼陣営】\nわざと自分のチームを負けさせれば勝ち。\n\n◆ ポイント ◆\n・試合に勝利：-1\n・バレずに試合に敗北：+3\n・バレて試合に敗北：+1' 
+            },
+            '狂人': { 
+                icon: '🤡', 
+                desc: '【人狼、第3陣営】\n自分に最も多く票を集めれば勝ち。\n\n◆ ポイント ◆\n・最も票を集める：+4' 
+            },
+            '村人': { 
+                icon: '🧑', 
+                desc: '【村人陣営】\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n◆ ポイント ◆\n・試合に勝利：+2' 
+            },
+            '占い師': { 
+                icon: '🔮', 
+                desc: '【村人陣営】\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n◆ 能力 ◆\n7キルしたら発動。指定した1人の役職をその場で発表してもらう。\n\n◆ ポイント ◆\n・試合に勝利：+2' 
+            },
+            '裁判官': { 
+                icon: '⚖️', 
+                desc: '【村人陣営】\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n◆ 能力 ◆\n5キルしたら発動。1試合目と2試合目の間のみ発動可能。票が多かった人は次の試合参加できない。\nまた人狼が1人で人狼が釣られた場合、その場で終了となり、村人陣営に1ポイント入る。\n\n◆ ポイント ◆\n・試合に勝利：+2' 
+            },
+            'スペシャルマン': { 
+                icon: '🦸💥', 
+                desc: '【第三陣営】\nポイントを集めるための役職。第三陣営なので、人狼、村人、どちらに付いても良い。\n\n◆ ポイント ◆\n・2試合ではいたスペシャルの数がポイントになる。' 
             }
-            document.getElementById('homeScreen').classList.add('hidden');
-            document.getElementById('roomScreen').classList.remove('hidden');
-            document.getElementById('guestSection').classList.remove('hidden');
-            document.getElementById('displayRoomId').innerText = roomId;
-
-            joinMember();
-            listenRoom();
-        });
-    }
-
-    function joinMember() {
-        database.ref('rooms/' + roomId + '/members/' + myName).set({
-            confirmed: false
-        });
-    }
-
-    function listenRoom() {
-        database.ref('rooms/' + roomId + '/members').on('value', (snapshot) => {
-            const members = snapshot.val() || {};
-            const listDiv = document.getElementById('memberList');
-            if (listDiv) {
-                listDiv.innerHTML = "";
-                for (let name in members) {
-                    listDiv.innerHTML += `<span class="member-badge">${name}</span>`;
-                }
-            }
-        });
-
-        database.ref('rooms/' + roomId + '/status').on('value', (snapshot) => {
-            if (snapshot.val() === "assigned") {
-                getSummary();
-            }
-        });
-    }
-
-    // 【役職を配るボタン（親のみ）】
-    function lockAndAssign() {
-        if (!isHost) return;
-
-        const roles = {
-            '人狼': parseInt(document.getElementById('num_jinro').value) || 0,
-            '村人': parseInt(document.getElementById('num_murabito').value) || 0,
-            '狂人': parseInt(document.getElementById('num_kyojin').value) || 0,
-            '占い師': parseInt(document.getElementById('num_uranaishi').value) || 0,
-            '裁判官': parseInt(document.getElementById('num_saibankan').value) || 0,
-            'スペシャルマン': parseInt(document.getElementById('num_specialman').value) || 0
         };
 
-        let roleArray = [];
-        for (let role in roles) {
-            for (let i = 0; i < roles[role]; i++) {
-                roleArray.push(role);
+        // Firebase設定（空でもテストモードで動きます）
+        const firebaseConfig = { apiKey: "", authDomain: "", databaseURL: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
+
+        let db = null;
+        let isFirebaseConnected = false;
+
+        if (firebaseConfig.databaseURL) {
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.database();
+                isFirebaseConnected = true;
+            } catch (e) {
+                console.error("Firebase接続エラー。ローカルモードで動作します。", e);
             }
         }
 
-        database.ref('rooms/' + roomId + '/members').once('value', (snapshot) => {
-            const members = snapshot.val();
-            const memberNames = Object.keys(members);
+        let myState = { roomId: null, playerId: null, name: '', isOwner: false, role: '', icon: '' };
+        let localDB = {};
 
-            if (roleArray.length < memberNames.length) {
-                alert('役職の数が足りません！');
-                return;
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('btn-create-room').addEventListener('click', createRoom);
+            document.getElementById('btn-join-room').addEventListener('click', joinRoom);
+            document.getElementById('btn-start-game').addEventListener('click', startGame);
+            document.getElementById('btn-confirm-role').addEventListener('click', confirmRole);
+            document.getElementById('btn-reset-room').addEventListener('click', resetRoom);
+            calcRoleTotal();
+        });
+
+        function showRoleDetail(roleName) {
+            const data = ROLE_DETAILS[roleName];
+            if (!data) return;
+            document.getElementById('modal-illustration').innerText = data.icon;
+            document.getElementById('modal-title').innerText = roleName;
+            document.getElementById('modal-description').innerText = data.desc;
+            document.getElementById('detail-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('detail-modal').classList.add('hidden');
+        }
+
+        function handleRoleItemClick(event, roleName) {
+            if (event.target.tagName === 'INPUT') return;
+            showRoleDetail(roleName);
+        }
+
+        function calcRoleTotal() {
+            const countW = parseInt(document.getElementById('num-werewolf').value) || 0;
+            const countM = parseInt(document.getElementById('num-madman').value) || 0;
+            const countC = parseInt(document.getElementById('num-citizen').value) || 0;
+            const countS = parseInt(document.getElementById('num-seer').value) || 0;
+            const countJ = parseInt(document.getElementById('num-judge').value) || 0;
+            const countSM = parseInt(document.getElementById('num-specialman').value) || 0;
+            
+            const totalRoles = countW + countM + countC + countS + countJ + countSM;
+            document.getElementById('count-roles').innerText = totalRoles;
+
+            const totalPlayers = parseInt(document.getElementById('count-players').innerText) || 0;
+            const toggleEl = document.getElementById('status-toggle');
+
+            if (totalRoles === totalPlayers && totalPlayers > 0) {
+                toggleEl.innerText = "OFF";
+                toggleEl.className = "status-ok";
+                document.getElementById('btn-start-game').disabled = false;
+            } else {
+                toggleEl.innerText = "ON (不一致)";
+                toggleEl.className = "status-alert";
+                document.getElementById('btn-start-game').disabled = true;
             }
+            return { '人狼': countW, '狂人': countM, '村人': countC, '占い師': countS, '裁判官': countJ, 'スペシャルマン': countSM };
+        }
 
-            roleArray.sort(() => Math.random() - 0.5);
+        function createRoom() {
+            const name = document.getElementById('player-name').value.trim();
+            if (!name) return alert("プレイヤー名を入力してください。");
+            
+            const randomId = Math.floor(1000 + Math.random() * 9000).toString();
+            myState.roomId = randomId;
+            myState.playerId = "player_" + Date.now();
+            myState.name = name;
+            myState.isOwner = true;
 
-            let updates = {};
-            memberNames.forEach((name, index) => {
-                updates['rooms/' + roomId + '/members/' + name + '/role'] = roleArray[index];
+            setupRoomUI();
+
+            const initialData = {
+                status: 'waiting',
+                owner: myState.playerId,
+                players: { [myState.playerId]: { name: name, role: "", confirmed: false } }
+            };
+
+            if (isFirebaseConnected) {
+                db.ref('rooms/' + randomId).set(initialData);
+                listenToRoom(randomId);
+            } else {
+                localDB[randomId] = initialData;
+                simulateLocalRoom(randomId);
+                alert("【テストモード】端末内のみで動作します。");
+            }
+        }
+
+        function joinRoom() {
+            const name = document.getElementById('player-name').value.trim();
+            const rId = document.getElementById('room-input').value.trim();
+            if (!name) return alert("プレイヤー名を入力してください。");
+            if (!rId) return alert("部屋番号を入力してください。");
+
+            myState.roomId = rId;
+            myState.playerId = "player_" + Date.now();
+            myState.name = name;
+            myState.isOwner = false;
+
+            if (isFirebaseConnected) {
+                db.ref('rooms/' + rId).once('value', (snapshot) => {
+                    if (!snapshot.exists()) return alert("部屋が見つかりません。");
+                    db.ref('rooms/' + rId + '/players/' + myState.playerId).set({ name: name, role: "", confirmed: false });
+                    setupRoomUI();
+                    listenToRoom(rId);
+                });
+            } else {
+                if (!localDB[rId]) return alert("部屋が見つかりません。");
+                localDB[rId].players[myState.playerId] = { name: name, role: "", confirmed: false };
+
+                    function setupRoomUI() {
+            document.getElementById('screen-home').classList.add('hidden');
+            document.getElementById('screen-room').classList.remove('hidden');
+            document.getElementById('display-room-id').innerText = myState.roomId;
+
+            if (myState.isOwner) {
+                document.getElementById('room-role-title').innerText = "👑 オーナー待機部屋";
+                document.getElementById('owner-settings-area').classList.remove('hidden');
+            } else {
+                document.getElementById('room-role-title').innerText = "👤 参加者待機部屋";
+                document.getElementById('guest-notice').classList.remove('hidden');
+            }
+        }
+
+        function listenToRoom(roomId) {
+            db.ref('rooms/' + roomId).on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+                updateRoomState(data);
             });
-            updates['rooms/' + roomId + '/status'] = "assigned";
+        }
 
-            database.ref().update(updates);
-        });
-    }
+        function updateRoomState(data) {
+            const playerArea = document.getElementById('player-list-area');
+            playerArea.innerHTML = '';
+            
+            let pCount = 0;
+            let allConfirmed = true;
+            const playersObj = data.players || {};
 
-    function getSummary() {
-        database.ref('rooms/' + roomId + '/members/' + myName + '/role').once('value', (snapshot) => {
-            const myRole = snapshot.val();
-            const resultScreen = document.getElementById('result-screen');
-            if (resultScreen) {
-                resultScreen.classList.add('active');
+            Object.keys(playersObj).forEach(pId => {
+                pCount++;
+                const p = playersObj[pId];
+                const badge = document.createElement('span');
+                badge.className = 'member-badge';
+                
+                let statusText = p.confirmed ? " (確認済)" : "";
+                if (pId === data.owner) {
+                    badge.innerText = `👑 ${p.name}${statusText}`;
+                    badge.style.background = "#e67e22";
+                } else {
+                    badge.innerText = `${p.name}${statusText}`;
+                }
+                playerArea.appendChild(badge);
+
+                if (!p.confirmed) allConfirmed = false;
+            });
+
+            document.getElementById('count-players').innerText = pCount;
+            calcRoleTotal();
+
+            if (data.status === 'playing' && myState.role === '') {
+                const myInfo = playersObj[myState.playerId];
+                if (myInfo && myInfo.role) {
+                    myState.role = myInfo.role;
+                    myState.icon = ROLE_DETAILS[myInfo.role]?.icon || '❓';
+                    triggerRevealAnimation();
+                }
             }
-        });
-    }
 
-    // 【役職詳細ポップアップを表示する処理】
-    function showDesc(roleName) {
-        const descs = {
-            '人狼': '【人狼陣営】\n\n◆勝利条件：\nわざと自分のチームを負けさせれば勝ち。\n\n◆獲得ポイント：\n・試合に勝利：-1\n・バレずに試合に敗北：+3\n・バレて試合に敗北：+1',
-            
-            '村人': '【村人陣営】\n\n◆勝利条件：\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n◆獲得ポイント：\n・試合に勝利：+2',
-            
-            '狂人': '【人狼・第3陣営】\n\n◆勝利条件：\n自分に最も多く票を集めれば勝ち。\n\n◆獲得ポイント：\n・最も票を集める：+4',
-            
-            '占い師': '【村人陣営】\n\n◆勝利条件：\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n◆特殊能力（7キルで発動）：\n指定した1人の役職をその場で発表してもらう。\n\n◆獲得ポイント：\n・試合に勝利：+2',
-            
-            '裁判官': '【村人陣営】\n\n◆勝利条件：\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n◆特殊能力（5キルで発動）：\n・1試合目と2試合目の間のみ発動可能。\n・票が多かった人は次の試合に参加できない。\n・人狼が1人で人狼が釣られた場合、その場で終了となり村人陣営に1ポイント入る。\n\n◆獲得ポイント：\n・試合に勝利：+2',
-            
-            'スペシャルマン': '【第三陣営】\n\n◆役割：\nポイントを集めるための役職。第三陣営なので、人狼・村人のどちらに味方しても良い。\n\n◆獲得ポイント：\n・2試合ではいたスペシャルの数がポイントになる。'
-        };
-        
-        document.getElementById('modalRoleName').innerText = roleName;
-        document.getElementById('modalDesc').innerText = descs[roleName] || "説明がありません。";
-        document.getElementById('descModal').classList.add('active');
-    }
+            if (data.status === 'playing' && allConfirmed && myState.isOwner) {
+                document.getElementById('btn-reset-room').classList.remove('hidden');
+            } else {
+                document.getElementById('btn-reset-room').classList.add('hidden');
+            }
 
-    function closeDesc() {
-        document.getElementById('descModal').classList.remove('active');
-    }
-</script>
+            if (data.status === 'waiting' && myState.role !== '') {
+                myState.role = '';
+                myState.icon = '';
+                document.getElementById('reveal-overlay').classList.remove('active');
+                document.getElementById('reveal-intro').classList.remove('animate-fade-in');
+                document.getElementById('reveal-icon-wrap').classList.remove('animate-fade-in');
+                document.getElementById('reveal-name').classList.remove('animate-fade-in');
+                document.getElementById('reveal-btn-wrap').classList.remove('animate-fade-in');
+            }
+        }
+
+        function startGame() {
+            const distribution = calcRoleTotal();
+            let rolePool = [];
+            Object.keys(distribution).forEach(rName => {
+                for (let i = 0; i < distribution[rName]; i++) { rolePool.push(rName); }
+            });
+
+            for (let i = rolePool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [rolePool[i], rolePool[j]] = [rolePool[j], rolePool[i]];
+            }
+
+            if (isFirebaseConnected) {
+                db.ref('rooms/' + myState.roomId + '/players').once('value', (snapshot) => {
+                    const players = snapshot.val();
+                    let index = 0;
+                    Object.keys(players).forEach(pId => {
+                        players[pId].role = rolePool[index] || '村人';
+                        players[pId].confirmed = false;
+                        index++;
+                    });
+                    db.ref('rooms/' + myState.roomId).update({ status: 'playing', players: players });
+                });
+            } else {
+                let index = 0;
+                Object.keys(localDB[myState.roomId].players).forEach(pId => {
+                    localDB[myState.roomId].players[pId].role = rolePool[index] || '村人';
+                    localDB[myState.roomId].players[pId].confirmed = false;
+                    index++;
+                });
+                localDB[myState.roomId].status = 'playing';
+                updateRoomState(localDB[myState.roomId]);
+            }
+        }
+
+        function triggerRevealAnimation() {
+            const overlay = document.getElementById('reveal-overlay');
+            document.getElementById('reveal-emoji').innerText = myState.icon;
+            document.getElementById('reveal-name').innerText = myState.role;
+
+            overlay.classList.add('active');
+
+            setTimeout(() => { document.getElementById('reveal-intro').classList.add('animate-fade-in'); }, 1000);
+            setTimeout(() => {
+                document.getElementById('reveal-icon-wrap').classList.add('animate-fade-in');
+                document.getElementById('reveal-name').classList.add('animate-fade-in');
+            }, 2200);
+            setTimeout(() => { document.getElementById('reveal-btn-wrap').classList.add('animate-fade-in'); }, 3500);
+        }
+
+        function confirmRole() {
+            if (isFirebaseConnected) {
+                db.ref('rooms/' + myState.roomId + '/players/' + myState.playerId).update({ confirmed: true });
+            } else {
+                localDB[myState.roomId].players[myState.playerId].confirmed = true;
+                updateRoomState(localDB[myState.roomId]);
+            }
+            alert("役職を確認しました！全員が確認するとオーナー画面に部屋に戻るボタンが出ます。");
+        }
+
+        function resetRoom() {
+            if (isFirebaseConnected) {
+                db.ref('rooms/' + myState.roomId + '/players').once('value', (snapshot) => {
+                    const players = snapshot.val();
+                    Object.keys(players).forEach(pId => { players[pId].role = ""; players[pId].confirmed = false; });
+                    db.ref('rooms/' + myState.roomId).update({ status: 'waiting', players: players });
+                });
+            } else {
+                Object.keys(localDB[myState.roomId].players).forEach(pId => { localDB[myState.roomId].players[pId].role = ""; localDB[myState.roomId].players[pId].confirmed = false; });
+                localDB[myState.roomId].status = 'waiting';
+                updateRoomState(localDB[myState.roomId]);
+            }
+        }
+
+        function simulateLocalRoom(roomId) {
+            setInterval(() => { if (!isFirebaseConnected && localDB[roomId]) { updateRoomState(localDB[roomId]); } }, 1000);
+        }
+    </script>
+</body>
+</html>

@@ -1,4 +1,3 @@
-サイト（完全版）
 
 <!DOCTYPE html>
 <html lang="ja">
@@ -305,49 +304,6 @@
         document.getElementById('modalDesc').innerText = descs[roleName] || "説明がありません。";
         document.getElementById('descModal').classList.add('active');
     }
-            <h2>部屋番号: <span id="displayRoomId" style="color:#e74c3c;">0000</span></h2>
-            
-            <div style="margin: 15px 0; min-height: 40px; text-align: left;">
-                <p style="color:#aaa; font-size:14px; margin-bottom:5px;">現在の参加者：</p>
-                <div id="memberList"></div>
-            </div>
-
-            <div id="hostSection" class="hidden">
-                <p style="color:#aaa; font-size:14px; margin-bottom:5px;">使う役職の数を指定してください：</p>
-                <div class="role-grid">
-                    <div class="role-item"><span>人狼:</span><input type="number" id="num_jinro" value="1" min="0"></div>
-                    <div class="role-item"><span>村人:</span><input type="number" id="num_murabito" value="1" min="0"></div>
-                    <div class="role-item"><span>狂人:</span><input type="number" id="num_kyojin" value="0" min="0"></div>
-                    <div class="role-item"><span>占い師:</span><input type="number" id="num_uranaishi" value="0" min="0"></div>
-                    <div class="role-item"><span>裁判官:</span><input type="number" id="num_saibankan" value="0" min="0"></div>
-                    <div class="role-item"><span>スペシャルマン:</span><input type="number" id="num_specialman" value="0" min="0"></div>
-                </div>
-                <button onclick="lockAndAssign()" style="background:#f39c12; margin-top:10px;">役職を配る（スタート）</button>
-            </div>
-            <div id="guestSection" class="hidden">
-                <p style="color:#aaa;">部屋主がスタートするのを待っています...</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- 3. 詳細ポップアップ（事前確認用モーダル）等 -->
-    <div id="descModal" class="modal-overlay" onclick="closeDesc()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div id="modalRoleName" class="modal-role-name">役職名</div>
-            <div id="modalDesc" class="modal-desc">説明文</div>
-            <button class="close-btn" onclick="closeDesc()">閉じる</button>
-        </div>
-    </div>
-
-    <div id="resultScreen" class="result-screen">
-        <div class="result-content" id="resultDynamicContent" style="width:100%;"></div>
-    </div>
-
-<script>
-    // Firebase設定と各種ルーム制御スクリプトが続きます。
-</script>
-</body>
-</html>
 
     function closeDesc() {
         document.getElementById('descModal').classList.remove('active');

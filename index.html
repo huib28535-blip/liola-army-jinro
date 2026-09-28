@@ -111,37 +111,15 @@
         </div>
     </div>
 
-    <!-- 3. タメ演出結果画面 -->
+        <!-- 3. 暗転フェードイン・カード浮遊 結果画面 -->
     <div id="resultScreen" class="result-screen">
-        <div class="result-content" class="panel" style="max-width:440px; margin:0 auto;">
-            <h2 style="font-size: 18px; color:#e74c3c; margin-bottom:10px; letter-spacing:3px;">あなたの役職は、、、</h2>
-            <div style="font-size: 34px; font-weight:bold; margin-bottom:15px; letter-spacing:2px;" id="roleTitle">役職名</div>
-            <div class="illust-container" id="illustContainer"></div>
-            
-            <!-- 全員に表示される確認ボタン -->
-            <button id="checkOkBtn" onclick="clickConfirm()" style="background:#27ae60; margin-top:25px; width:80%; max-width:280px;">確認しました</button>
-            
-            <!-- オーナー（部屋主）にだけ、全員確認後に自動出現するボタン -->
-            <button id="ownerBackBtn" onclick="ownerResetRoom()" class="hidden" style="background:#f39c12; margin-top:20px; width:80%; max-width:280px;">全員確認完了：部屋に戻る</button>
-            
-            <div id="waitingOthersMsg" class="waiting-msg hidden">他のメンバーの確認を待っています...</div>
+        <div class="result-content">
+            <!-- JavaScriptから演出レイアウトとボタン類がここに動的に挿入されます -->
         </div>
     </div>
-
-    <!-- 4. 役職詳細ポップアップ -->
-    <div id="descModal" class="modal-overlay" onclick="closeDesc()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div id="modalRoleName" class="modal-role-name">役職名</div>
-            <div id="modalDesc" class="modal-desc">説明文</div>
-            <button class="close-btn" onclick="closeDesc()">閉じる</button>
-        </div>
-    </div>
-
-    <script src="https://gstatic.com"></script>
-<script src="https://gstatic.com"></script>
 
 <script>
-    // --- Firebaseの設定 ---
+    // --- 1. Firebaseの設定 ---
     const firebaseConfig = {
         databaseURL: "https://firebaseio.com"
     };
@@ -151,151 +129,222 @@
     let roomId = "";
     let myName = "";
     let isHost = false;
+    let globalMembersCount = 0;
 
-    // 【部屋を作る（親）ボタン】
+    // --- 2. オリジナル役職ルールのデータ定義 ---
+    const roleDetails = {
+        '人狼': { 
+            desc: '【人狼陣営】\nわざと自分のチームを負けさせれば勝ち。\n\n▼ ポイント\n・試合に勝利：-1\n-------------\n・バレずに試合に敗北：＋3\n・バレて試合に敗北：＋1', 
+            img: 'jinro.png.PNG' 
+        },
+        '村人': { 
+            desc: '【村人陣営】\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n▼ ポイント\n・試合に勝利：＋2', 
+            img: 'murabito.png.PNG' 
+        },
+        '狂人': { 
+            desc: '【人狼・第3陣営】\n自分に最も多く票を集めれば勝ち。\n\n▼ ポイント\n・最も票を集める：＋4', 
+            img: 'murabito.png.PNG' 
+        },
+        '占い師': { 
+            desc: '【村人陣営】\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n★ 能力（7キルしたら発動）\n指定した1人の役職をその場で発表してもらう。\n\n▼ ポイント\n・試合に勝利：＋2', 
+            img: 'murabito.png.PNG' 
+        },
+        '裁判官': { 
+            desc: '【村人陣営】\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n★ 能力（5キルしたら発動）\n1試合目と2試合目の間のみ発動可能。\n票が多かった人は次の試合参加できない。\nまた、人狼が1人で人狼が釣られた場合、その場で終了となり、村人陣営に1ポイント入る。\n\n▼ ポイント\n・試合に勝利：＋2', 
+            img: 'murabito.png.PNG' 
+        },
+        'スペシャルマン': { 
+            desc: '【第三陣営】\nポイントを集めるための役職。第三陣営なので、人狼、村人、どちらに付いても良い。\n\n▼ ポイント\n・2試合ではいたスペシャルの数がポイントになる', 
+            img: 'murabito.png.PNG' 
+        }
+    };
+
+    // トップ画面の役職説明ポップアップ
+    function showDesc(roleName) {
+        document.getElementById('modalRoleName').innerText = roleName;
+        document.getElementById('modalDesc').innerText = roleDetails[roleName] ? roleDetails[roleName].desc : '説明がありません。';
+        document.getElementById('descModal').classList.add('active');
+    }
+    function closeDesc() {
+        document.getElementById('descModal').classList.remove('active');
+    }
+
+    // --- 3. 部屋を作る（親） ---
     function createRoom() {
         myName = document.getElementById('playerName').value.trim();
-        if (!myName) { alert('名前を入力してください！'); return; }
+        if (!myName) return alert("名前を入力してください");
 
         roomId = Math.floor(1000 + Math.random() * 9000).toString();
         isHost = true;
 
-        document.getElementById('homeScreen').classList.add('hidden');
-        document.getElementById('roomScreen').classList.remove('hidden');
-        document.getElementById('hostSection').classList.remove('hidden');
-        document.getElementById('displayRoomId').innerText = roomId;
-
         database.ref('rooms/' + roomId).set({
             host: myName,
-            status: "waiting"
-        });
-
-        joinMember();
-        listenRoom();
+            status: 'waiting',
+            members: { [myName]: true }
+        }).then(() => {
+            enterRoom();
+        }).catch(err => alert("部屋の作成に失敗しました: " + err.message));
     }
 
-    // 【部屋に入る（子）ボタン】
+    // --- 4. 部屋に入る（子） ---
     function joinRoom() {
         myName = document.getElementById('playerName').value.trim();
         roomId = document.getElementById('roomInput').value.trim();
-        if (!myName || !roomId) { alert('名前と部屋番号を入力してください！'); return; }
+        if (!myName) return alert("名前を入力してください");
+        if (!roomId) return alert("部屋番号を入力してください");
 
-        isHost = false;
-
-        database.ref('rooms/' + roomId).once('value', (snapshot) => {
+        const roomRef = database.ref('rooms/' + roomId);
+        roomRef.once('value', (snapshot) => {
             if (!snapshot.exists()) {
-                alert('その部屋は見つかりません。');
+                alert("指定された部屋が見つかりません");
                 return;
             }
-            document.getElementById('homeScreen').classList.add('hidden');
-            document.getElementById('roomScreen').classList.remove('hidden');
+            roomRef.child('members').child(myName).set(true).then(() => {
+                enterRoom();
+            });
+        });
+    }
+
+    // 待機画面の同期
+    function enterRoom() {
+        document.getElementById('homeScreen').classList.add('hidden');
+        document.getElementById('roomScreen').classList.remove('hidden');
+        document.getElementById('resultScreen').classList.remove('active');
+        document.getElementById('displayRoomId').innerText = roomId;
+
+        if (isHost) {
+            document.getElementById('hostSection').classList.remove('hidden');
+        } else {
             document.getElementById('guestSection').classList.remove('hidden');
-            document.getElementById('displayRoomId').innerText = roomId;
+        }
 
-            joinMember();
-            listenRoom();
-        });
-    }
-
-    function joinMember() {
-        database.ref('rooms/' + roomId + '/members/' + myName).set({
-            confirmed: false
-        });
-    }
-
-    function listenRoom() {
         database.ref('rooms/' + roomId + '/members').on('value', (snapshot) => {
-            const members = snapshot.val() || {};
             const listDiv = document.getElementById('memberList');
-            if (listDiv) {
-                listDiv.innerHTML = "";
-                for (let name in members) {
-                    listDiv.innerHTML += `<span class="member-badge">${name}</span>`;
-                }
-            }
+            if(!listDiv) return;
+            listDiv.innerHTML = "";
+            let count = 0;
+            snapshot.forEach((child) => {
+                count++;
+                const span = document.createElement('span');
+                span.className = "member-badge";
+                span.innerText = child.key;
+                listDiv.appendChild(span);
+            });
+            globalMembersCount = count;
         });
 
         database.ref('rooms/' + roomId + '/status').on('value', (snapshot) => {
-            if (snapshot.val() === "assigned") {
-                getSummary();
+            const currentStatus = snapshot.val();
+            if (currentStatus === 'assigned') {
+                showResult();
+            } else if (currentStatus === 'waiting') {
+                document.getElementById('resultScreen').classList.remove('active');
+                document.getElementById('homeScreen').classList.add('hidden');
+                document.getElementById('roomScreen').classList.remove('hidden');
             }
         });
     }
 
-    // 【役職を配るボタン（親のみ）】
+    // --- 5. 役職を配る（親が実行） ---
     function lockAndAssign() {
-        if (!isHost) return;
-
-        const roles = {
-            '人狼': parseInt(document.getElementById('num_jinro').value) || 0,
-            '村人': parseInt(document.getElementById('num_murabito').value) || 0,
-            '狂人': parseInt(document.getElementById('num_kyojin').value) || 0,
-            '占い師': parseInt(document.getElementById('num_uranaishi').value) || 0,
-            '裁判官': parseInt(document.getElementById('num_saibankan').value) || 0,
-            'スペシャルマン': parseInt(document.getElementById('num_specialman').value) || 0
+        const rolesToAssign = [];
+        const roleInputs = {
+            '人狼': 'num_jinro', '村人': 'num_murabito', '狂人': 'num_kyojin',
+            '占い師': 'num_uranaishi', '裁判官': 'num_saibankan', 'スペシャルマン': 'num_specialman'
         };
 
-        let roleArray = [];
-        for (let role in roles) {
-            for (let i = 0; i < roles[role]; i++) {
-                roleArray.push(role);
+        for (let role in roleInputs) {
+            const count = parseInt(document.getElementById(roleInputs[role]).value) || 0;
+            for (let i = 0; i < count; i++) {
+                rolesToAssign.push(role);
             }
         }
 
         database.ref('rooms/' + roomId + '/members').once('value', (snapshot) => {
-            const members = snapshot.val();
-            const memberNames = Object.keys(members);
+            const members = [];
+            snapshot.forEach(c => { members.push(c.key); });
 
-            if (roleArray.length < memberNames.length) {
-                alert('役職の数が足りません！');
-                return;
+            if (rolesToAssign.length < members.length) {
+                return alert(`役職の合計数（${rolesToAssign.length}）が、現在の参加人数（${members.length}）より少ないです。人数分以上の役職を設定してください。`);
             }
 
-            roleArray.sort(() => Math.random() - 0.5);
+            for (let i = rolesToAssign.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [rolesToAssign[i], rolesToAssign[j]] = [rolesToAssign[j], rolesToAssign[i]];
+            }
 
-            let updates = {};
-            memberNames.forEach((name, index) => {
-                updates['rooms/' + roomId + '/members/' + name + '/role'] = roleArray[index];
+            const assignments = {};
+            members.forEach((member, index) => {
+                assignments[member] = rolesToAssign[index];
             });
-            updates['rooms/' + roomId + '/status'] = "assigned";
 
-            database.ref().update(updates);
+            database.ref('rooms/' + roomId + '/confirmed_members').remove();
+
+            database.ref('rooms/' + roomId + '/assignments').set(assignments).then(() => {
+                database.ref('rooms/' + roomId + '/status').set('assigned');
+            });
         });
     }
 
-    function getSummary() {
-        database.ref('rooms/' + roomId + '/members/' + myName + '/role').once('value', (snapshot) => {
-            const myRole = snapshot.val();
-            const resultScreen = document.getElementById('result-screen');
-            if (resultScreen) {
-                resultScreen.classList.add('active');
+    // --- 6. 劇的フェードイン＆カード浮遊演出画面 ---
+    function showResult() {
+        database.ref('rooms/' + roomId + '/assignments/' + myName).once('value', (snapshot) => {
+            const myRole = snapshot.val() || "観客";
+            const descText = roleDetails[myRole] ? roleDetails[myRole].desc : 'ルールがありません。';
+            const imgSrc = roleDetails[myRole] ? roleDetails[myRole].img : '';
+
+            const screen = document.getElementById('resultScreen');
+            screen.classList.add('active');
+
+            // 演出用レイアウトを流し込む（「resultIllustContainer」を受け皿としてカード内部に正しく配置しました）
+            const contentDiv = document.querySelector('.result-content');
+            contentDiv.innerHTML = `
+                <div style="font-size: 20px; color: #aaa; margin-bottom: 25px; font-weight: bold; letter-spacing: 4px;">
+                    あなたの役職は、、、
+                </div>
+
+                <div class="modal-content" style="display: block; margin: 0 auto; opacity: 1; transform: translateY(0); pointer-events: auto;">
+                    <div style="font-size: 32px; font-weight: bold; margin-bottom: 15px; color: #e74c3c; letter-spacing: 2px;">
+                        ${myRole}
+                    </div>
+
+                    <!-- イラスト画像の表示エリア -->
+                    <div class="illust-container" id="resultIllustContainer" style="margin: 15px 0;"></div>
+
+                    <div style="font-size: 13px; color: #ccc; text-align: left; white-space: pre-wrap; background: #121212; padding: 12px; border-radius: 6px; border: 1px solid #333; margin-top: 15px; line-height: 1.5;">${descText}</div>
+                </div>
+
+                <div style="max-width: 440px; margin: 0 auto; padding: 0 20px; box-sizing: border-box;">
+                    <button id="confirmCheckBtn" onclick="clickConfirmRole()" style="background: #2980b9;">役職を確認しました</button>
+                    
+                    <div id="confirmStatusText" style="font-size: 13px; color: #aaa; margin-top: 10px; letter-spacing: 1px;">
+                        確認待ち: 同期中...
+                    </div>
+
+                    <div id="hostReturnArea" class="hidden" style="margin-top: 15px;">
+                        <button onclick="returnToWaitingRoom()" style="background: #27ae60; font-size: 18px; border: 2px solid #fff; box-shadow: 0 0 15px rgba(39,174,96,0.6);">全員を部屋に戻す</button>
+                    </div>
+                </div>
+            `;
+
+            // 画像の埋め込み処理
+            const container = document.getElementById('resultIllustContainer');
+            if (imgSrc) {
+                const img = document.createElement('img');
+                img.className = 'illust-img';
+                img.src = imgSrc;
+                img.alt = myRole;
+                container.appendChild(img);
+            } else {
+                container.innerHTML = `<div class="no-img-box">NO IMAGE</div>`;
             }
-        });
-    }
 
-    // 【役職詳細ポップアップを表示する処理】
-    function showDesc(roleName) {
-        const descs = {
-            '人狼': '【人狼陣営】\n\n◆勝利条件：\nわざと自分のチームを負けさせれば勝ち。\n\n◆獲得ポイント：\n・試合に勝利：-1\n・バレずに試合に敗北：+3\n・バレて試合に敗北：+1',
-            
-            '村人': '【村人陣営】\n\n◆勝利条件：\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n◆獲得ポイント：\n・試合に勝利：+2',
-            
-            '狂人': '【人狼・第3陣営】\n\n◆勝利条件：\n自分に最も多く票を集めれば勝ち。\n\n◆獲得ポイント：\n・最も票を集める：+4',
-            
-            '占い師': '【村人陣営】\n\n◆勝利条件：\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n◆特殊能力（7キルで発動）：\n指定した1人の役職をその場で発表してもらう。\n\n◆獲得ポイント：\n・試合に勝利：+2',
-            
-            '裁判官': '【村人陣営】\n\n◆勝利条件：\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n◆特殊能力（5キルで発動）：\n・1試合目と2試合目の間のみ発動可能。\n・票が多かった人は次の試合に参加できない。\n・人狼が1人で人狼が釣られた場合、その場で終了となり村人陣営に1ポイント入る。\n\n◆獲得ポイント：\n・試合に勝利：+2',
-            
-            'スペシャルマン': '【第三陣営】\n\n◆役割：\nポイントを集めるための役職。第三陣営なので、人狼・村人のどちらに味方しても良い。\n\n◆獲得ポイント：\n・2試合ではいたスペシャルの数がポイントになる。'
-        };
-        
-        document.getElementById('modalRoleName').innerText = roleName;
-        document.getElementById('modalDesc').innerText = descs[roleName] || "説明がありません。";
-        document.getElementById('descModal').classList.add('active');
-    }
+            database.ref('rooms/' + roomId + '/confirmed_members').on('value', (confirmSnap) => {
+                let confirmedCount = confirmSnap.numChildren();
+                const statusText = document.getElementById('confirmStatusText');
+                if (statusText) {
+                    statusText.innerText = `確認済み: ${confirmedCount}人 / 全体: ${globalMembersCount}人`;
+                }
 
-    function closeDesc() {
-        document.getElementById('descModal').classList.remove('active');
-    }
-</script>
-
+                if (confirmedCount >= globalMembersCount && isHost) {
+                    const returnArea = document.getElementById('hostReturnArea');

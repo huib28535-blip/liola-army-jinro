@@ -1,303 +1,2757 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>オンライン人狼役職配り</title>
-    <!-- Firebase (v9互換) の読み込み -->
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
-    <style>
-        body { background-color: #121212; color: #ffffff; font-family: sans-serif; text-align: center; padding: 20px; margin: 0; overflow-y: auto; }
-        h1 { color: #e74c3c; font-size: 24px; margin-bottom: 5px; text-shadow: 0 0 10px rgba(231,76,60,0.4); }
-        .panel { background: #1e1e1e; padding: 20px; border-radius: 10px; max-width: 440px; margin: 20px auto; border: 1px solid #333; box-shadow: 0 4px 10px rgba(0,0,0,0.5); box-sizing: border-box; position: relative; }
-        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 5px; border: none; font-size: 16px; box-sizing: border-box; }
-        input { background: #2a2a2a; color: white; border: 1px solid #444; }
-        button { background: #e74c3c; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { opacity: 0.9; }
-        button:disabled { background: #555; color: #888; cursor: not-allowed; }
-        .hidden { display: none !important; }
-        .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; text-align: left; }
-        .role-item { background: #2a2a2a; padding: 8px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; border: 1px solid #444; cursor: pointer; }
-        .role-item input { width: 50px; padding: 6px; margin: 0; text-align: center; font-size: 14px; }
-        .member-badge { display: inline-block; background: #2980b9; padding: 6px 12px; border-radius: 20px; margin: 5px; font-weight: bold; }
-        .info-title { color: #888; font-size: 14px; margin-top: 40px; margin-bottom: 10px; letter-spacing: 2px; }
-        .role-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 440px; margin: 0 auto 40px auto; }
-        .role-card { background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 15px; cursor: pointer; transition: 0.2s; }
-        .role-card:hover { border-color: #e74c3c; background: #252525; }
-        .role-card .icon { font-size: 24px; margin-bottom: 5px; }
-        .role-card .name { font-weight: bold; font-size: 14px; }
-        .room-number-display { position: absolute; top: 10px; right: 15px; font-size: 12px; color: #888; letter-spacing: 1px; }
-        .setting-info { background: #252525; padding: 10px; border-radius: 6px; margin: 15px 0; text-align: left; font-size: 14px; border-left: 4px solid #e74c3c; }
-        .setting-info div { margin: 4px 0; }
-        .status-alert { color: #e74c3c; font-weight: bold; }
-        .status-ok { color: #2ecc71; font-weight: bold; }
-        .guest-waiting-msg { color: #f39c12; font-weight: bold; margin: 20px 0; font-size: 16px; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
-        #reveal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 1s ease-in-out, visibility 1s; padding: 20px; box-sizing: border-box; }
-        #reveal-overlay.active { opacity: 1; visibility: visible; }
-        .fade-in-text { font-size: 20px; color: #aaa; margin-bottom: 20px; opacity: 0; }
-        .fade-in-illustration { font-size: 80px; margin-bottom: 15px; opacity: 0; }
-        .fade-in-rolename { font-size: 32px; color: #e74c3c; font-weight: bold; margin-bottom: 30px; opacity: 0; text-shadow: 0 0 15px rgba(231,76,60,0.6); }
-        .reveal-btn-container { width: 100%; max-width: 250px; opacity: 0; }
-        .animate-fade-in { animation: fadeIn 1.2s forwards; }
-        @keyframes fadeIn { to { opacity: 1; } }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; justify-content: center; align-items: center; }
-        .modal-content { background: #222; border: 1px solid #444; padding: 25px; border-radius: 12px; max-width: 360px; width: 85%; box-shadow: 0 5px 15px rgba(0,0,0,0.8); animation: scaleUp 0.2s ease-out; }
-        @keyframes scaleUp { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .modal-illustration { font-size: 60px; margin-bottom: 10px; }
-        .modal-title { font-size: 20px; color: #e74c3c; font-weight: bold; margin-bottom: 15px; }
-        .modal-description { font-size: 14px; color: #ddd; line-height: 1.6; text-align: left; background: #1a1a1a; padding: 12px; border-radius: 6px; margin-bottom: 15px; max-height: 250px; overflow-y: auto; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>オンライン人狼役職配り</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Hiragino Kaku Gothic ProN",
+        "Yu Gothic",
+        sans-serif;
+      background:
+        radial-gradient(circle at top, #2d3857 0%, #121626 45%, #090b12 100%);
+      color: white;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .screen {
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .center {
+      max-width: 850px;
+      margin: 0 auto;
+    }
+
+    /* =========================
+       トップ
+    ========================= */
+
+    .top-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .title-box {
+      text-align: center;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .title-box h1 {
+      font-size: clamp(30px, 8vw, 56px);
+      margin: 0 0 12px;
+      letter-spacing: 2px;
+    }
+
+    .subtitle {
+      opacity: 0.7;
+      margin-bottom: 40px;
+    }
+
+    .main-buttons {
+      display: grid;
+      gap: 14px;
+    }
+
+    .main-button {
+      border: 0;
+      border-radius: 18px;
+      padding: 18px;
+      font-size: 20px;
+      font-weight: bold;
+      color: white;
+      background: #526dff;
+      box-shadow: 0 8px 25px rgba(0,0,0,.25);
+    }
+
+    .main-button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.08);
+    }
+
+    .main-button.secondary {
+      background: #252b40;
+    }
+
+    /* =========================
+       共通カード
+    ========================= */
+
+    .card {
+      background: rgba(22, 27, 45, .88);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 22px;
+      padding: 24px;
+      box-shadow: 0 15px 40px rgba(0,0,0,.25);
+      backdrop-filter: blur(10px);
+    }
+
+    .card h2 {
+      margin-top: 0;
+    }
+
+    .form {
+      display: grid;
+      gap: 14px;
+    }
+
+    input {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: 1px solid #3d4662;
+      background: #111522;
+      color: white;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #6e83ff;
+    }
+
+    .primary {
+      border: 0;
+      border-radius: 14px;
+      padding: 15px;
+      background: #526dff;
+      color: white;
+      font-weight: bold;
+    }
+
+    .back-button {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      background: #292f43;
+      color: white;
+    }
+
+    .error {
+      color: #ff8d8d;
+      background: rgba(255, 80, 80, .1);
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 14px;
+    }
+
+    /* =========================
+       部屋
+    ========================= */
+
+    .room-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 18px;
+    }
+
+    .room-code {
+      font-size: 13px;
+      opacity: .7;
+      text-align: right;
+    }
+
+    .room-code strong {
+      display: block;
+      font-size: 25px;
+      letter-spacing: 4px;
+      opacity: 1;
+    }
+
+    .room-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    @media (max-width: 700px) {
+      .room-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .players {
+      display: grid;
+      gap: 9px;
+      margin-top: 15px;
+    }
+
+    .player {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px;
+      border-radius: 12px;
+      background: #121725;
+    }
+
+    .owner-badge {
+      font-size: 11px;
+      padding: 5px 8px;
+      border-radius: 8px;
+      background: #6656d9;
+    }
+
+    .waiting {
+      color: #aeb7cf;
+      font-size: 14px;
+    }
+
+    /* =========================
+       役職設定
+    ========================= */
+
+    .role-settings {
+      display: grid;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .role-setting {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: #111522;
+      border-radius: 13px;
+    }
+
+    .role-setting-name {
+      font-weight: bold;
+    }
+
+    .role-setting-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .count-button {
+      width: 34px;
+      height: 34px;
+      border: 0;
+      border-radius: 10px;
+      color: white;
+      background: #303850;
+      font-size: 20px;
+    }
+
+    .count {
+      min-width: 24px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .off {
+      opacity: .45;
+    }
+
+    .total-box {
+      margin-top: 15px;
+      padding: 13px;
+      border-radius: 12px;
+      background: #20263a;
+      text-align: center;
+    }
+
+    .start-info {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      background: #20263a;
+      text-align: center;
+      font-size: 13px;
+      color: #aeb7cf;
+    }
+
+    /* =========================
+       退出・解散
+    ========================= */
+
+    .leave-button {
+      width: 100%;
+      margin-top: 15px;
+      border: 0;
+      border-radius: 14px;
+      padding: 14px;
+      background: #7d3440;
+      color: white;
+      font-weight: bold;
+    }
+
+    .leave-button:hover {
+      filter: brightness(1.1);
+    }
+
+    .close-room-button {
+      width: 100%;
+      margin-top: 10px;
+      border: 0;
+      border-radius: 14px;
+      padding: 14px;
+      background: #9b3030;
+      color: white;
+      font-weight: bold;
+    }
+
+    .close-room-button:hover {
+      filter: brightness(1.1);
+    }
+
+    /* =========================
+       役職一覧
+    ========================= */
+
+    .roles-title {
+      margin-top: 35px;
+    }
+
+    .role-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 650px) {
+      .role-list {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .role-card {
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 18px;
+      padding: 12px;
+      background: #141a2a;
+      color: white;
+      text-align: center;
+      transition: transform .2s;
+      animation: floating 2.8s ease-in-out infinite;
+    }
+
+    .role-card:nth-child(2) {
+      animation-delay: -.5s;
+    }
+
+    .role-card:nth-child(3) {
+      animation-delay: -1s;
+    }
+
+    .role-card:nth-child(4) {
+      animation-delay: -1.5s;
+    }
+
+    .role-card:nth-child(5) {
+      animation-delay: -2s;
+    }
+
+    .role-card:nth-child(6) {
+      animation-delay: -2.5s;
+    }
+
+    .role-card:hover {
+      transform: scale(1.03);
+    }
+
+    @keyframes floating {
+      0%, 100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-6px);
+      }
+    }
+
+    .role-card img,
+    .role-image-placeholder {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 13px;
+      background: #242b40;
+    }
+
+    .role-image-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 50px;
+    }
+
+    .role-card h3 {
+      margin: 10px 0 4px;
+    }
+
+    .role-card p {
+      margin: 0;
+      font-size: 12px;
+      opacity: .65;
+    }
+
+    /* =========================
+       役職詳細
+    ========================= */
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(0,0,0,.72);
+    }
+
+    .modal-card {
+      width: min(560px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      background: #151a2a;
+      border-radius: 25px;
+      padding: 22px;
+      box-shadow: 0 20px 70px rgba(0,0,0,.5);
+    }
+
+    .detail-image {
+      width: 100%;
+      max-height: 360px;
+      object-fit: contain;
+      border-radius: 18px;
+      background: #252b40;
+    }
+
+    .detail-placeholder {
+      width: 100%;
+      height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 100px;
+      background: #252b40;
+      border-radius: 18px;
+    }
+
+    .detail-text {
+      line-height: 1.8;
+      white-space: pre-line;
+      color: #e5e9f4;
+    }
+
+    .close-button {
+      width: 100%;
+      margin-top: 15px;
+      border: 0;
+      border-radius: 13px;
+      padding: 14px;
+      background: #303850;
+      color: white;
+    }
+
+    /* =========================
+       役職配布
+    ========================= */
+
+    .deal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(3,5,10,.96);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: darken .8s ease;
+    }
+
+    @keyframes darken {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .deal-box {
+      width: min(520px, 100%);
+      text-align: center;
+    }
+
+    .deal-intro {
+      font-size: 24px;
+      margin-bottom: 22px;
+    }
+
+    .deal-role {
+      font-size: clamp(38px, 10vw, 64px);
+      font-weight: bold;
+      margin: 18px 0;
+    }
+
+    .deal-image {
+      width: min(380px, 85vw);
+      max-height: 430px;
+      object-fit: contain;
+      border-radius: 20px;
+      background: #1b2133;
+    }
+
+    .deal-placeholder {
+      width: min(380px, 85vw);
+      height: 380px;
+      margin: 0 auto;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1b2133;
+      font-size: 120px;
+    }
+
+    .confirm-button {
+      margin-top: 24px;
+      width: 100%;
+      border: 0;
+      border-radius: 16px;
+      padding: 17px;
+      color: white;
+      background: #526dff;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .confirmed-message {
+      margin-top: 18px;
+      opacity: .7;
+    }
+
+    /* =========================
+       ローディング
+    ========================= */
+
+    .loading {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #090b12;
+    }
+
+    .spinner {
+      width: 45px;
+      height: 45px;
+      border: 4px solid #30374e;
+      border-top-color: #6d80ff;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 25px;
+      transform: translateX(-50%);
+      z-index: 600;
+      background: #252c40;
+      padding: 13px 18px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.3);
+    }
+  </style>
 </head>
+
 <body>
-    <h1>オンライン人狼役職配り</h1>
-    <div id="screen-home" class="panel">
-        <input type="text" id="player-name" placeholder="あなたのプレイヤー名">
-        <button id="btn-create-room" style="background: #27ae60; margin-top: 15px;">部屋を作る</button>
-        <div style="margin: 15px 0; color: #888; font-size: 14px;">または</div>
-        <input type="number" id="room-input" placeholder="4桁の部屋番号を入力">
-        <button id="btn-join-room">部屋に入って参加する</button>
-        <div class="info-title">役職一覧（タップで詳細を表示）</div>
-        <div class="role-list">
-            <div class="role-card" onclick="showRoleDetail('人狼')"><div class="icon">🐺</div><div class="name">人狼</div></div>
-            <div class="role-card" onclick="showRoleDetail('狂人')"><div class="icon">🤡</div><div class="name">狂人</div></div>
-            <div class="role-card" onclick="showRoleDetail('村人')"><div class="icon">🧑</div><div class="name">村人</div></div>
-            <div class="role-card" onclick="showRoleDetail('占い師')"><div class="icon">🔮</div><div class="name">占い師</div></div>
-            <div class="role-card" onclick="showRoleDetail('裁判官')"><div class="icon">⚖️</div><div class="name">裁判官</div></div>
-            <div class="role-card" onclick="showRoleDetail('スペシャルマン')"><div class="icon">🦸💥</div><div class="name">スペシャル</div></div>
-        </div>
+
+  <!-- ローディング -->
+  <div id="loading" class="loading hidden">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- =========================
+       トップ
+  ========================= -->
+
+  <section id="homeScreen" class="screen top-screen">
+    <div class="title-box">
+
+      <h1>オンライン人狼役職配り</h1>
+
+      <div class="subtitle">
+        リオラ軍団
+      </div>
+
+      <div class="main-buttons">
+
+        <button
+          class="main-button"
+          onclick="showCreateScreen()">
+          部屋を作る
+        </button>
+
+        <button
+          class="main-button secondary"
+          onclick="showJoinScreen()">
+          部屋番号を入力して参加
+        </button>
+
+        <button
+          class="main-button secondary"
+          onclick="showRoleList()">
+          役職一覧を見る
+        </button>
+
+      </div>
     </div>
-    <!-- 2. ルーム画面（オーナー・参加者共通） -->
-    <div id="screen-room" class="panel hidden">
-        <div class="room-number-display">部屋番号: <span id="display-room-id">0000</span></div>
-        <h2 id="room-role-title" style="font-size: 18px; margin-top: 10px; color: #3498db;">待機ロビー</h2>
+  </section>
 
-        <div class="setting-info">
-            <div>👥 参加人数: <span id="count-players">0</span> 人</div>
-            <div>🃏 選択された役職の合計: <span id="count-roles">0</span> 枚</div>
-            <div>⚠️ 人数チェック: <span id="status-toggle">OFF</span></div>
+  <!-- =========================
+       作成
+  ========================= -->
+
+  <section id="createScreen" class="screen hidden">
+    <div class="center">
+
+      <button
+        class="back-button"
+        onclick="goHome()">
+        ← 戻る
+      </button>
+
+      <div class="card" style="margin-top:20px;">
+
+        <h2>部屋を作る</h2>
+
+        <div class="form">
+
+          <input
+            id="createName"
+            maxlength="20"
+            placeholder="あなたの名前">
+
+          <button
+            class="primary"
+            onclick="createRoom()">
+            部屋を作成
+          </button>
+
         </div>
 
-        <div id="guest-notice" class="guest-waiting-msg hidden">オーナーが設定しています。開始をお待ちください...</div>
-
-        <div id="owner-settings-area" class="hidden">
-            <div style="font-size: 14px; text-align: left; color: #aaa; margin-bottom: 5px;">役職配分設定（タップで詳細）</div>
-            <div class="role-grid">
-                <div class="role-item" onclick="handleRoleItemClick(event, '人狼')">
-                    <span>🐺 人狼</span><input type="number" id="num-werewolf" value="1" min="0" onchange="calcRoleTotal()">
-                </div>
-                <div class="role-item" onclick="handleRoleItemClick(event, '狂人')">
-                    <span>🤡 狂人</span><input type="number" id="num-madman" value="0" min="0" onchange="calcRoleTotal()">
-                </div>
-                <div class="role-item" onclick="handleRoleItemClick(event, '村人')">
-                    <span>🧑 村人</span><input type="number" id="num-citizen" value="2" min="0" onchange="calcRoleTotal()">
-                </div>
-                <div class="role-item" onclick="handleRoleItemClick(event, '占い師')">
-                    <span>🔮 占い師</span><input type="number" id="num-seer" value="1" min="0" onchange="calcRoleTotal()">
-                </div>
-                <div class="role-item" onclick="handleRoleItemClick(event, '裁判官')">
-                    <span>⚖️ 裁判官</span><input type="number" id="num-judge" value="0" min="0" onchange="calcRoleTotal()">
-                </div>
-                <div class="role-item" onclick="handleRoleItemClick(event, 'スペシャルマン')">
-                    <span>🦸 スペシャル</span><input type="number" id="num-specialman" value="0" min="0" onchange="calcRoleTotal()">
-                </div>
-            </div>
-            <button id="btn-start-game" disabled>スタートボタン</button>
+        <div
+          id="createError"
+          class="error hidden"
+          style="margin-top:12px;">
         </div>
 
-        <div style="font-size: 14px; text-align: left; color: #aaa; margin-top: 15px;">参加中のプレイヤー:</div>
-        <div id="player-list-area" style="text-align: left; margin-bottom: 20px;"></div>
-        <button id="btn-reset-room" class="hidden" style="background: #34495e;">全員を部屋に戻る</button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================
+       参加
+  ========================= -->
+
+  <section id="joinScreen" class="screen hidden">
+    <div class="center">
+
+      <button
+        class="back-button"
+        onclick="goHome()">
+        ← 戻る
+      </button>
+
+      <div class="card" style="margin-top:20px;">
+
+        <h2>部屋に参加</h2>
+
+        <div class="form">
+
+          <input
+            id="joinName"
+            maxlength="20"
+            placeholder="あなたの名前">
+
+          <input
+            id="joinCode"
+            maxlength="4"
+            inputmode="numeric"
+            placeholder="4桁の部屋番号">
+
+          <button
+            class="primary"
+            onclick="joinRoom()">
+            参加する
+          </button>
+
+        </div>
+
+        <div
+          id="joinError"
+          class="error hidden"
+          style="margin-top:12px;">
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================
+       部屋
+  ========================= -->
+
+  <section id="roomScreen" class="screen hidden">
+
+    <div class="center">
+
+      <div class="room-header">
+
+        <div>
+          <h1 style="margin:0;">待機部屋</h1>
+
+          <div
+            id="roomStatusText"
+            class="waiting">
+            オーナーが設定しています
+          </div>
+        </div>
+
+        <div class="room-code">
+          部屋番号
+
+          <strong id="roomCodeText">
+            ----
+          </strong>
+        </div>
+
+      </div>
+
+      <div class="room-grid">
+
+        <!-- 参加者 -->
+
+        <div class="card">
+
+          <h2>
+            参加者
+            <span id="playerCount">0</span>人
+          </h2>
+
+          <div
+            id="playersList"
+            class="players">
+          </div>
+
+        </div>
+
+        <!-- オーナー設定 -->
+
+        <div
+          id="ownerPanel"
+          class="card hidden">
+
+          <h2>設定</h2>
+
+          <div
+            id="roleSettings"
+            class="role-settings">
+          </div>
+
+          <div class="total-box">
+            必要人数：
+            <strong id="roleTotal">0</strong>人
+          </div>
+
+          <button
+            id="startButton"
+            class="primary"
+            style="width:100%;margin-top:15px;"
+            onclick="startGame()">
+            🎮 ゲーム開始
+          </button>
+
+          <div
+            id="startInfo"
+            class="start-info">
+            参加人数と役職数を合わせてください
+          </div>
+
+          <button
+            id="returnButton"
+            class="primary hidden"
+            style="width:100%;margin-top:10px;"
+            onclick="backToRoom()">
+            部屋に戻る
+          </button>
+
+        </div>
+
+        <!-- 参加者側 -->
+
+        <div
+          id="guestPanel"
+          class="card hidden">
+
+          <h2>参加者</h2>
+
+          <p class="waiting">
+            オーナーが設定しています
+          </p>
+
+          <p>
+            ゲームが開始されると、
+            あなたの役職が表示されます。
+          </p>
+
+        </div>
+
+      </div>
+
+      <!-- =========================
+           退出・解散
+      ========================= -->
+
+      <div class="card" style="margin-top:18px;">
+
+        <!-- オーナー -->
+        <div
+          id="ownerCloseArea"
+          class="hidden">
+
+          <h2>オーナー操作</h2>
+
+          <p class="waiting">
+            部屋を終了すると、
+            この部屋を解散できます。
+          </p>
+
+          <button
+            class="close-room-button"
+            onclick="closeRoom()">
+            🔴 部屋を解散する
+          </button>
+
+        </div>
+
+        <!-- 参加者 -->
+        <div
+          id="guestLeaveArea"
+          class="hidden">
+
+          <h2>部屋から退出</h2>
+
+          <p class="waiting">
+            この部屋から抜けます。
+          </p>
+
+          <button
+            class="leave-button"
+            onclick="leaveRoom()">
+            🚪 部屋から退出する
+          </button>
+
+        </div>
+
+      </div>
+
+      <!-- 役職一覧 -->
+
+      <h2 class="roles-title">
+        役職一覧
+      </h2>
+
+      <div
+        id="roomRoleList"
+        class="role-list">
+      </div>
+
     </div>
 
-    <!-- 🎭 役職配布のドラマチック演出画面 -->
-    <div id="reveal-overlay">
-        <div class="fade-in-text" id="reveal-intro">あなたの役職は、、、</div>
-        <div class="fade-in-illustration" id="reveal-icon">❓</div>
-        <div class="fade-in-rolename" id="reveal-name">役職名</div>
-        <div class="reveal-btn-container" id="reveal-btn-wrap">
-            <button id="btn-confirm-role" style="background: #2ecc71;">役職確認ボタン</button>
-        </div>
+  </section>
+
+  <!-- =========================
+       役職詳細
+  ========================= -->
+
+  <div
+    id="roleModal"
+    class="modal hidden"
+    onclick="closeRoleModal(event)">
+
+    <div class="modal-card">
+
+      <div id="roleModalContent"></div>
+
+      <button
+        class="close-button"
+        onclick="closeRoleModal()">
+        閉じる
+      </button>
+
     </div>
 
-    <!-- 📋 役職詳細ポップアップモーダル -->
-    <div id="detail-modal" class="modal-overlay hidden" onclick="closeModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="modal-illustration" id="modal-illustration">🐺</div>
-            <div class="modal-title" id="modal-title">役職名</div>
-            <div class="modal-description" id="modal-description">説明文</div>
-            <button onclick="closeModal()" style="background: #555; padding: 8px; margin: 0; width: 80px;">閉じる</button>
-        </div>
+  </div>
+
+  <!-- =========================
+       役職配布
+  ========================= -->
+
+  <div
+    id="dealOverlay"
+    class="deal-overlay hidden">
+
+    <div class="deal-box">
+
+      <div class="deal-intro">
+        あなたの役職は、、、
+      </div>
+
+      <div id="dealContent"></div>
+
+      <button
+        id="confirmRoleButton"
+        class="confirm-button"
+        onclick="confirmMyRole()">
+        この役職を確認する
+      </button>
+
+      <div
+        id="confirmedMessage"
+        class="confirmed-message hidden">
+        確認しました。ほかの人を待っています……
+      </div>
+
     </div>
 
-    <script>
-        const ROLE_DETAILS = {
-            '人狼': { icon: '🐺', desc: '【人狼陣営】\nわざと自分のチームを負けさせれば勝ち。\n\n◆ ポイント ◆\n・試合に勝利：-1\n・バレずに試合に敗北：+3\n・バレて試合に敗北：+1' },
-            '狂人': { icon: '🤡', desc: '【人狼、第3陣営】\n自分に最も多く票を集めれば勝ち。\n\n◆ ポイント ◆\n・最も票を集める：+4' },
-            '村人': { icon: '🧑', desc: '【村人陣営】\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n◆ ポイント ◆\n・試合に勝利：+2' },
-            '占い師': { icon: '🔮', desc: '【村人陣営】\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n◆ 能力 ◆\n7キルしたら発動。指定した1人の役職をその場で発表してもらう。\n\n◆ ポイント ◆\n・試合に勝利：+2' },
-            '裁判官': { icon: '⚖️', desc: '【村人陣営】\n味方と協力し試合に勝ち、人狼を見つけ出したら勝ち。\n\n◆ 能力 ◆\n5キルしたら発動。1試合目と2試合目の間のみ発動可能。票が多かった人は次の試合参加できない。\nまた人狼が1人で人狼が釣られた場合、その場で終了となり、村人陣営に1ポイント入る。\n\n◆ ポイント ◆\n・試合に勝利：+2' },
-            'スペシャルマン': { icon: '🦸💥', desc: '【第三陣営】\nポイントを集めるための役職。第三陣営なので、人狼、村人、どちらに付いても良い。\n\n◆ ポイント ◆\n・2試合ではいたスペシャルの数がポイントになる。' }
-        };
+  </div>
 
-        const firebaseConfig = { apiKey: "", authDomain: "", databaseURL: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
-        let db = null; let isFirebaseConnected = false;
+  <div
+    id="toast"
+    class="toast hidden">
+  </div>
 
-        if (firebaseConfig.databaseURL) {
-            try { firebase.initializeApp(firebaseConfig); db = firebase.database(); isFirebaseConnected = true; } catch (e) { console.error(e); }
+<script>
+
+/* =========================================================
+   Supabase設定
+========================================================= */
+
+const SUPABASE_URL =
+  "https://bduxxzvavgknaxnmvtbv.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_qvHMK89PQngzq72Ttn9aZA_BfkThD4W";
+
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+
+/* =========================================================
+   役職データ
+========================================================= */
+
+const ROLES = {
+
+  "人狼": {
+    team: "人狼陣営",
+    short: "わざと自分のチームを負けさせる",
+
+    description:
+`人狼陣営
+
+わざと自分のチームを負けさせれば勝ち。
+
+【ポイント】
+試合に勝利 -1
+バレずに試合に敗北 +3
+バレて試合に敗北 +1`,
+
+    listImage: "assets/jinrou-list.png",
+    dealImage: "assets/jinrou-deal.png",
+    emoji: "🐺"
+  },
+
+  "狂人": {
+    team: "人狼、第3陣営",
+    short: "自分に最も多く票を集める",
+
+    description:
+`人狼、第3陣営
+
+自分に最も多く票を集めれば勝ち。
+
+【ポイント】
+最も票を集める +4`,
+
+    emoji: "🤡"
+  },
+
+  "村人": {
+    team: "村人陣営",
+    short: "味方と協力して人狼を見つける",
+
+    description:
+`村人陣営
+
+味方と協力し試合に勝ち、
+人狼を見つけ出したら勝ち。
+
+【ポイント】
+試合に勝利 +2`,
+
+    listImage: "assets/murabito-list.png",
+    dealImage: "assets/murabito-deal.png",
+    emoji: "👤"
+  },
+
+  "占い師": {
+    team: "村人陣営",
+    short: "7キルで1人の役職を発表",
+
+    description:
+`村人陣営
+
+味方と協力し試合に勝ち、
+人狼を見つけ出したら勝ち。
+
+【能力】
+7キルしたら発動。
+指定した1人の役職を
+その場で発表してもらう。
+
+【ポイント】
+試合に勝利 +2`,
+
+    emoji: "🔮"
+  },
+
+  "裁判官": {
+    team: "村人陣営",
+    short: "5キルで裁判官の能力を発動",
+
+    description:
+`村人陣営
+
+味方と協力し試合に勝ち、
+人狼を見つけ出したら勝ち。
+
+【能力】
+5キルしたら発動。
+
+1試合目と2試合目の間のみ
+発動可能。
+
+票が多かった人は
+次の試合に参加できない。
+
+また、人狼が1人で
+人狼が釣られた場合、
+その場で終了となり、
+村人陣営に1ポイント入る。
+
+【ポイント】
+試合に勝利 +2`,
+
+    emoji: "⚖️"
+  },
+
+  "スペシャルマン": {
+    team: "第三陣営",
+    short: "ポイントを集める役職",
+
+    description:
+`第三陣営
+
+ポイントを集めるための役職。
+
+第三陣営なので、
+人狼、村人、
+どちらに付いても良い。
+
+【ポイント】
+2試合ではいた
+スペシャルの数がポイントになる。`,
+
+    emoji: "⭐"
+  }
+
+};
+
+
+/* =========================================================
+   状態
+========================================================= */
+
+let currentRoomCode = null;
+let currentPlayerToken = null;
+let currentOwnerToken = null;
+let currentRole = null;
+let currentIsOwner = false;
+let pollingTimer = null;
+
+
+/* =========================================================
+   画面切り替え
+========================================================= */
+
+function hideAllScreens() {
+
+  document
+    .querySelectorAll(".screen")
+    .forEach(el => {
+      el.classList.add("hidden");
+    });
+}
+
+
+function goHome() {
+
+  stopPolling();
+
+  currentRoomCode = null;
+  currentPlayerToken = null;
+  currentOwnerToken = null;
+  currentRole = null;
+  currentIsOwner = false;
+
+  hideAllScreens();
+
+  document
+    .getElementById("homeScreen")
+    .classList.remove("hidden");
+}
+
+
+function showCreateScreen() {
+
+  hideAllScreens();
+
+  document
+    .getElementById("createScreen")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("createName")
+    .focus();
+}
+
+
+function showJoinScreen() {
+
+  hideAllScreens();
+
+  document
+    .getElementById("joinScreen")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("joinName")
+    .focus();
+}
+
+
+/* =========================================================
+   ローディング
+========================================================= */
+
+function showLoading(show) {
+
+  document
+    .getElementById("loading")
+    .classList.toggle(
+      "hidden",
+      !show
+    );
+}
+
+
+/* =========================================================
+   エラー
+========================================================= */
+
+function showError(id, message) {
+
+  const el =
+    document.getElementById(id);
+
+  el.textContent = message;
+  el.classList.remove("hidden");
+}
+
+
+function clearError(id) {
+
+  document
+    .getElementById(id)
+    .classList.add("hidden");
+}
+
+
+/* =========================================================
+   トースト
+========================================================= */
+
+let toastTimer;
+
+function toast(message) {
+
+  const el =
+    document.getElementById("toast");
+
+  el.textContent = message;
+  el.classList.remove("hidden");
+
+  clearTimeout(toastTimer);
+
+  toastTimer = setTimeout(() => {
+    el.classList.add("hidden");
+  }, 2500);
+}
+
+
+/* =========================================================
+   部屋を作る
+========================================================= */
+
+async function createRoom() {
+
+  clearError("createError");
+
+  const name =
+    document
+      .getElementById("createName")
+      .value
+      .trim();
+
+  if (!name) {
+
+    showError(
+      "createError",
+      "名前を入力してください。"
+    );
+
+    return;
+  }
+
+  showLoading(true);
+
+  try {
+
+    const { data, error } =
+      await supabaseClient.rpc(
+        "create_room",
+        {
+          p_player_name: name
         }
+      );
 
-        let myState = { roomId: null, playerId: null, name: '', isOwner: false, role: '', icon: '' };
-        let localDB = {};
+    if (error) {
+      throw error;
+    }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('btn-create-room').addEventListener('click', createRoom);
-            document.getElementById('btn-join-room').addEventListener('click', joinRoom);
-            document.getElementById('btn-start-game').addEventListener('click', startGame);
-            document.getElementById('btn-confirm-role').addEventListener('click', confirmRole);
-            document.getElementById('btn-reset-room').addEventListener('click', resetRoom);
-            calcRoleTotal();
-        });
+    currentRoomCode =
+      data.room_code;
 
-        function showRoleDetail(roleName) {
-            const data = ROLE_DETAILS[roleName]; if (!data) return;
-            document.getElementById('modal-illustration').innerText = data.icon;
-            document.getElementById('modal-title').innerText = roleName;
-            document.getElementById('modal-description').innerText = data.desc;
-            document.getElementById('detail-modal').classList.remove('hidden');
+    currentPlayerToken =
+      data.player_token;
+
+    currentOwnerToken =
+      data.owner_token;
+
+    currentIsOwner = true;
+
+    saveSession();
+
+    await openRoom();
+
+  } catch (error) {
+
+    console.error(error);
+
+    showError(
+      "createError",
+      getErrorMessage(error)
+    );
+
+  } finally {
+
+    showLoading(false);
+
+  }
+}
+
+
+/* =========================================================
+   部屋に参加
+========================================================= */
+
+async function joinRoom() {
+
+  clearError("joinError");
+
+  const name =
+    document
+      .getElementById("joinName")
+      .value
+      .trim();
+
+  const code =
+    document
+      .getElementById("joinCode")
+      .value
+      .trim();
+
+  if (!name) {
+
+    showError(
+      "joinError",
+      "名前を入力してください。"
+    );
+
+    return;
+  }
+
+  if (!/^\d{4}$/.test(code)) {
+
+    showError(
+      "joinError",
+      "4桁の部屋番号を入力してください。"
+    );
+
+    return;
+  }
+
+  showLoading(true);
+
+  try {
+
+    const { data, error } =
+      await supabaseClient.rpc(
+        "join_room",
+        {
+          p_room_code: code,
+          p_player_name: name
         }
-        function closeModal() { document.getElementById('detail-modal').classList.add('hidden'); }
-        function handleRoleItemClick(event, roleName) { if (event.target.tagName === 'INPUT') return; showRoleDetail(roleName); }
+      );
 
-        function calcRoleTotal() {
-            const countW = parseInt(document.getElementById('num-werewolf').value) || 0;
-            const countM = parseInt(document.getElementById('num-madman').value) || 0;
-            const countC = parseInt(document.getElementById('num-citizen').value) || 0;
-            const countS = parseInt(document.getElementById('num-seer').value) || 0;
-            const countJ = parseInt(document.getElementById('num-judge').value) || 0;
-            const countSM = parseInt(document.getElementById('num-specialman').value) || 0;
-            const totalRoles = countW + countM + countC + countS + countJ + countSM;
-            document.getElementById('count-roles').innerText = totalRoles;
-            const totalPlayers = parseInt(document.getElementById('count-players').innerText) || 0;
-            const toggleEl = document.getElementById('status-toggle');
-            if (totalRoles === totalPlayers && totalPlayers > 0) {
-                toggleEl.innerText = "OFF"; toggleEl.className = "status-ok"; document.getElementById('btn-start-game').disabled = false;
-            } else {
-                toggleEl.innerText = "ON (不一致)"; toggleEl.className = "status-alert"; document.getElementById('btn-start-game').disabled = true;
-            }
-            return { '人狼': countW, '狂人': countM, '村人': countC, '占い師': countS, '裁判官': countJ, 'スペシャルマン': countSM };
+    if (error) {
+      throw error;
+    }
+
+    currentRoomCode =
+      data.room_code;
+
+    currentPlayerToken =
+      data.player_token;
+
+    currentOwnerToken = null;
+    currentIsOwner = false;
+
+    saveSession();
+
+    await openRoom();
+
+  } catch (error) {
+
+    console.error(error);
+
+    showError(
+      "joinError",
+      getErrorMessage(error)
+    );
+
+  } finally {
+
+    showLoading(false);
+
+  }
+}
+
+
+/* =========================================================
+   セッション保存
+========================================================= */
+
+function saveSession() {
+
+  localStorage.setItem(
+    "liora_room_code",
+    currentRoomCode || ""
+  );
+
+  localStorage.setItem(
+    "liora_player_token",
+    currentPlayerToken || ""
+  );
+
+  localStorage.setItem(
+    "liora_owner_token",
+    currentOwnerToken || ""
+  );
+}
+
+
+/* =========================================================
+   部屋を開く
+========================================================= */
+
+async function openRoom() {
+
+  hideAllScreens();
+
+  document
+    .getElementById("roomScreen")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("roomCodeText")
+    .textContent =
+    currentRoomCode;
+
+  startPolling();
+
+  await refreshRoom();
+}
+
+
+/* =========================================================
+   部屋情報取得
+========================================================= */
+
+async function refreshRoom() {
+
+  if (
+    !currentRoomCode ||
+    !currentPlayerToken
+  ) {
+    return;
+  }
+
+  try {
+
+    const { data, error } =
+      await supabaseClient.rpc(
+        "get_room",
+        {
+          p_room_code: currentRoomCode,
+          p_player_token: currentPlayerToken
         }
+      );
 
-        function createRoom() {
-            const name = document.getElementById('player-name').value.trim(); if (!name) return alert("名前を入力してください");
-            const randomId = Math.floor(1000 + Math.random() * 9000).toString();
-            myState.roomId = randomId; myState.playerId = "player_" + Date.now(); myState.name = name; myState.isOwner = true;
-            setupRoomUI();
-            const initialData = { status: 'waiting', owner: myState.playerId, players: { [myState.playerId]: { name: name, role: "", confirmed: false } } };
-            if (isFirebaseConnected) { db.ref('rooms/' + randomId).set(initialData); listenToRoom(randomId); }
-            else { localDB[randomId] = initialData; simulateLocalRoom(randomId); alert("【テストモード】この画面内のみで連動テストができます。"); }
+    if (error) {
+      throw error;
+    }
+
+    currentIsOwner =
+      !!data.is_owner;
+
+    renderRoom(data);
+
+    if (
+      data.status === "started" &&
+      data.my_role
+    ) {
+
+      currentRole =
+        data.my_role;
+
+      showDealScreen(
+        data.my_role,
+        data.my_confirmed
+      );
+
+    } else {
+
+      closeDealScreen();
+
+    }
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+}
+
+
+/* =========================================================
+   部屋表示
+========================================================= */
+
+function renderRoom(data) {
+
+  document
+    .getElementById("roomCodeText")
+    .textContent =
+    data.room_code;
+
+  document
+    .getElementById("playerCount")
+    .textContent =
+    data.players.length;
+
+
+  const players =
+    document.getElementById(
+      "playersList"
+    );
+
+  players.innerHTML = "";
+
+
+  data.players.forEach(
+    (player, index) => {
+
+      const div =
+        document.createElement("div");
+
+      div.className = "player";
+
+      const left =
+        document.createElement("span");
+
+      left.textContent =
+        player.name;
+
+      const right =
+        document.createElement("span");
+
+
+      if (index === 0) {
+
+        right.textContent =
+          "オーナー";
+
+        right.className =
+          "owner-badge";
+
+      } else if (
+        data.status === "started" &&
+        player.confirmed
+      ) {
+
+        right.textContent =
+          "確認済み";
+
+        right.className =
+          "owner-badge";
+
+      }
+
+      div.appendChild(left);
+      div.appendChild(right);
+
+      players.appendChild(div);
+
+    }
+  );
+
+
+  /* =========================
+     退出・解散ボタン
+  ========================= */
+
+  if (data.is_owner) {
+
+    document
+      .getElementById("ownerCloseArea")
+      .classList.remove("hidden");
+
+    document
+      .getElementById("guestLeaveArea")
+      .classList.add("hidden");
+
+  } else {
+
+    document
+      .getElementById("ownerCloseArea")
+      .classList.add("hidden");
+
+    document
+      .getElementById("guestLeaveArea")
+      .classList.remove("hidden");
+
+  }
+
+
+  /* =========================
+     オーナー・参加者パネル
+  ========================= */
+
+  if (data.is_owner) {
+
+    document
+      .getElementById("ownerPanel")
+      .classList.remove("hidden");
+
+    document
+      .getElementById("guestPanel")
+      .classList.add("hidden");
+
+    renderSettings(
+      data.settings
+    );
+
+    if (
+      data.status === "started"
+    ) {
+
+      document
+        .getElementById("startButton")
+        .classList.add("hidden");
+
+      document
+        .getElementById("startInfo")
+        .classList.add("hidden");
+
+      document
+        .getElementById("returnButton")
+        .classList.remove("hidden");
+
+    } else {
+
+      document
+        .getElementById("startButton")
+        .classList.remove("hidden");
+
+      document
+        .getElementById("startInfo")
+        .classList.remove("hidden");
+
+      document
+        .getElementById("returnButton")
+        .classList.add("hidden");
+
+      updateStartButton(data);
+
+    }
+
+  } else {
+
+    document
+      .getElementById("ownerPanel")
+      .classList.add("hidden");
+
+    document
+      .getElementById("guestPanel")
+      .classList.remove("hidden");
+
+  }
+
+
+  /* =========================
+     状態表示
+  ========================= */
+
+  if (
+    data.status === "waiting"
+  ) {
+
+    document
+      .getElementById("roomStatusText")
+      .textContent =
+      data.is_owner
+        ? "設定してゲームを開始してください"
+        : "オーナーが設定しています";
+
+  } else {
+
+    document
+      .getElementById("roomStatusText")
+      .textContent =
+      "ゲーム中";
+
+  }
+}
+
+
+/* =========================================================
+   ゲーム開始ボタンの状態
+========================================================= */
+
+function updateStartButton(data) {
+
+  if (!data.is_owner) {
+    return;
+  }
+
+  const settings =
+    data.settings || {};
+
+  const playerCount =
+    data.players.length;
+
+  let roleTotal = 0;
+
+  Object.keys(ROLES).forEach(role => {
+
+    roleTotal +=
+      Number(settings[role] || 0);
+
+  });
+
+
+  const button =
+    document.getElementById(
+      "startButton"
+    );
+
+  const info =
+    document.getElementById(
+      "startInfo"
+    );
+
+
+  if (
+    roleTotal === playerCount &&
+    playerCount > 0
+  ) {
+
+    button.disabled = false;
+    button.style.opacity = "1";
+
+    info.textContent =
+      `準備OK！ ${playerCount}人でゲームを始められます 🎮`;
+
+  } else {
+
+    button.disabled = true;
+    button.style.opacity = ".5";
+
+    info.textContent =
+      `参加者 ${playerCount}人 / 役職 ${roleTotal}人`;
+
+  }
+}
+
+
+/* =========================================================
+   設定表示
+========================================================= */
+
+function renderSettings(settings) {
+
+  const container =
+    document.getElementById(
+      "roleSettings"
+    );
+
+  container.innerHTML = "";
+
+  let total = 0;
+
+  Object.keys(ROLES).forEach(
+    role => {
+
+      const count =
+        Number(settings[role] || 0);
+
+      total += count;
+
+      const row =
+        document.createElement("div");
+
+      row.className =
+        "role-setting";
+
+      if (count === 0) {
+        row.classList.add("off");
+      }
+
+      row.innerHTML = `
+        <div class="role-setting-name">
+          ${escapeHtml(role)}
+        </div>
+
+        <div class="role-setting-controls">
+
+          <button
+            class="count-button"
+            onclick="changeRoleCount('${escapeAttr(role)}', -1)">
+            −
+          </button>
+
+          <span class="count">
+            ${count}
+          </span>
+
+          <button
+            class="count-button"
+            onclick="changeRoleCount('${escapeAttr(role)}', 1)">
+            ＋
+          </button>
+
+        </div>
+      `;
+
+      container.appendChild(row);
+
+    }
+  );
+
+  document
+    .getElementById("roleTotal")
+    .textContent = total;
+}
+
+
+/* =========================================================
+   役職数変更
+========================================================= */
+
+async function changeRoleCount(
+  role,
+  amount
+) {
+
+  if (!currentIsOwner) {
+    return;
+  }
+
+  try {
+
+    const { data, error } =
+      await supabaseClient.rpc(
+        "get_room",
+        {
+          p_room_code: currentRoomCode,
+          p_player_token: currentPlayerToken
         }
+      );
 
-        function joinRoom() {
-            const name = document.getElementById('player-name').value.trim();
-            const rId = document.getElementById('room-input').value.trim();
-            if (!name || !rId) return alert("名前と4桁の部屋番号を入力してください");
-            myState.roomId = rId; myState.playerId = "player_" + Date.now(); myState.name = name; myState.isOwner = false;
-            if (isFirebaseConnected) {
-                db.ref('rooms/' + rId).once('value', (snapshot) => {
-                    if (!snapshot.exists()) return alert("部屋が見つかりません");
-                    db.ref('rooms/' + rId + '/players/' + myState.playerId).set({ name: name, role: "", confirmed: false });
-                    setupRoomUI(); listenToRoom(rId);
-                });
-            } else {
-                if (!localDB[rId]) return alert("部屋が見つかりません");
-                localDB[rId].players[myState.playerId] = { name: name, role: "", confirmed: false };
-                setupRoomUI(); simulateLocalRoom(rId);
-            }
+    if (error) {
+      throw error;
+    }
+
+    const settings =
+      { ...data.settings };
+
+    let next =
+      Number(settings[role] || 0)
+      + amount;
+
+    if (next < 0) {
+      next = 0;
+    }
+
+    if (next > 20) {
+      next = 20;
+    }
+
+    settings[role] = next;
+
+    const result =
+      await supabaseClient.rpc(
+        "update_settings",
+        {
+          p_room_code:
+            currentRoomCode,
+
+          p_owner_token:
+            currentOwnerToken,
+
+          p_settings:
+            settings
         }
+      );
 
-        function setupRoomUI() {
-            document.getElementById('screen-home').classList.add('hidden');
-            document.getElementById('screen-room').classList.remove('hidden');
-            document.getElementById('display-room-id').innerText = myState.roomId;
-            if (myState.isOwner) {
-                document.getElementById('room-role-title').innerText = "👑 オーナー待機部屋";
-                document.getElementById('owner-settings-area').classList.remove('hidden');
-            } else {
-        function listenToRoom(roomId) { db.ref('rooms/' + roomId).on('value', (snapshot) => { const data = snapshot.val(); if (data) updateRoomState(data); }); }
+    if (result.error) {
+      throw result.error;
+    }
 
-        function updateRoomState(data) {
-            const playerArea = document.getElementById('player-list-area'); playerArea.innerHTML = '';
-            let pCount = 0; let allConfirmed = true; const playersObj = data.players || {};
-            Object.keys(playersObj).forEach(pId => {
-                pCount++; const p = playersObj[pId]; const badge = document.createElement('span'); badge.className = 'member-badge';
-                let statusText = p.confirmed ? " (確認済)" : "";
-                if (pId === data.owner) { badge.innerText = `👑 ${p.name}${statusText}`; badge.style.background = "#e67e22"; }
-                else { badge.innerText = `${p.name}${statusText}`; }
-                playerArea.appendChild(badge); if (!p.confirmed) allConfirmed = false;
-            });
-            document.getElementById('count-players').innerText = pCount; calcRoleTotal();
-            if (data.status === 'playing' && myState.role === '') {
-                const myInfo = playersObj[myState.playerId];
-                if (myInfo && myInfo.role) { myState.role = myInfo.role; myState.icon = ROLE_DETAILS[myInfo.role]?.icon || '❓'; triggerRevealAnimation(); }
-            }
-            if (data.status === 'playing' && allConfirmed && myState.isOwner) { document.getElementById('btn-reset-room').classList.remove('hidden'); }
-            else { document.getElementById('btn-reset-room').classList.add('hidden'); }
-            if (data.status === 'waiting' && myState.role !== '') {
-                myState.role = ''; myState.icon = ''; document.getElementById('reveal-overlay').classList.remove('active');
-                document.getElementById('reveal-intro').classList.remove('animate-fade-in');
-                document.getElementById('reveal-icon').classList.remove('animate-fade-in');
-                document.getElementById('reveal-name').classList.remove('animate-fade-in');
-                document.getElementById('reveal-btn-wrap').classList.remove('animate-fade-in');
-            }
+    renderSettings(settings);
+
+    await refreshRoom();
+
+  } catch (error) {
+
+    console.error(error);
+
+    toast(
+      getErrorMessage(error)
+    );
+
+  }
+}
+
+
+/* =========================================================
+   ゲーム開始
+========================================================= */
+
+async function startGame() {
+
+  if (!currentIsOwner) {
+    return;
+  }
+
+  try {
+
+    const result =
+      await supabaseClient.rpc(
+        "start_game",
+        {
+          p_room_code:
+            currentRoomCode,
+
+          p_owner_token:
+            currentOwnerToken
         }
+      );
 
-        function startGame() {
-            const distribution = calcRoleTotal(); let rolePool = [];
-            Object.keys(distribution).forEach(rName => { for (let i = 0; i < distribution[rName]; i++) { rolePool.push(rName); } });
-            for (let i = rolePool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [rolePool[i], rolePool[j]] = [rolePool[j], rolePool[i]]; }
-            if (isFirebaseConnected) {
-                db.ref('rooms/' + myState.roomId + '/players').once('value', (snapshot) => {
-                    const players = snapshot.val(); let index = 0;
-                    Object.keys(players).forEach(pId => { players[pId].role = rolePool[index] || '村人'; players[pId].confirmed = false; index++; });
-                    db.ref('rooms/' + myState.roomId).update({ status: 'playing', players: players });
-                });
-            } else {
-                let index = 0;
-                Object.keys(localDB[myState.roomId].players).forEach(pId => { localDB[myState.roomId].players[pId].role = rolePool[index] || '村人'; localDB[myState.roomId].players[pId].confirmed = false; index++; });
-                localDB[myState.roomId].status = 'playing'; updateRoomState(localDB[myState.roomId]);
-            }
+    if (result.error) {
+      throw result.error;
+    }
+
+    toast("役職を配布しました！");
+
+    await refreshRoom();
+
+  } catch (error) {
+
+    console.error(error);
+
+    toast(
+      getErrorMessage(error)
+    );
+
+  }
+}
+
+
+/* =========================================================
+   役職配布画面
+========================================================= */
+
+function showDealScreen(
+  role,
+  confirmed
+) {
+
+  const overlay =
+    document.getElementById(
+      "dealOverlay"
+    );
+
+  const content =
+    document.getElementById(
+      "dealContent"
+    );
+
+  const info =
+    ROLES[role];
+
+  if (!info) {
+    return;
+  }
+
+  let imageHtml = "";
+
+  if (info.dealImage) {
+
+    imageHtml = `
+      <img
+        class="deal-image"
+        src="${info.dealImage}"
+        alt="${escapeAttr(role)}"
+        onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+
+      <div class="deal-placeholder hidden">
+        ${info.emoji}
+      </div>
+    `;
+
+  } else {
+
+    imageHtml = `
+      <div class="deal-placeholder">
+        ${info.emoji}
+      </div>
+    `;
+
+  }
+
+
+  content.innerHTML = `
+    ${imageHtml}
+
+    <div class="deal-role">
+      ${escapeHtml(role)}
+    </div>
+
+    <div style="opacity:.65;">
+      ${escapeHtml(info.team)}
+    </div>
+  `;
+
+
+  document
+    .getElementById(
+      "confirmRoleButton"
+    )
+    .classList.toggle(
+      "hidden",
+      confirmed
+    );
+
+
+  document
+    .getElementById(
+      "confirmedMessage"
+    )
+    .classList.toggle(
+      "hidden",
+      !confirmed
+    );
+
+
+  overlay.classList.remove(
+    "hidden"
+  );
+}
+
+
+function closeDealScreen() {
+
+  document
+    .getElementById(
+      "dealOverlay"
+    )
+    .classList.add("hidden");
+
+}
+
+
+/* =========================================================
+   役職確認
+========================================================= */
+
+async function confirmMyRole() {
+
+  try {
+
+    const result =
+      await supabaseClient.rpc(
+        "confirm_role",
+        {
+          p_room_code:
+            currentRoomCode,
+
+          p_player_token:
+            currentPlayerToken
         }
+      );
 
-        function triggerRevealAnimation() {
-            const overlay = document.getElementById('reveal-overlay');
-            document.getElementById('reveal-icon').innerText = myState.icon; document.getElementById('reveal-name').innerText = myState.role;
-            overlay.classList.add('active');
-            setTimeout(() => { document.getElementById('reveal-intro').classList.add('animate-fade-in'); }, 1000);
-            setTimeout(() => { document.getElementById('reveal-icon').classList.add('animate-fade-in'); document.getElementById('reveal-name').classList.add('animate-fade-in'); }, 2200);
-            setTimeout(() => { document.getElementById('reveal-btn-wrap').classList.add('animate-fade-in'); }, 3500);
+    if (result.error) {
+      throw result.error;
+    }
+
+    document
+      .getElementById(
+        "confirmRoleButton"
+      )
+      .classList.add("hidden");
+
+    document
+      .getElementById(
+        "confirmedMessage"
+      )
+      .classList.remove("hidden");
+
+    toast("確認しました");
+
+    await refreshRoom();
+
+  } catch (error) {
+
+    console.error(error);
+
+    toast(
+      getErrorMessage(error)
+    );
+
+  }
+}
+
+
+/* =========================================================
+   部屋に戻る
+========================================================= */
+
+async function backToRoom() {
+
+  if (!currentIsOwner) {
+    return;
+  }
+
+  try {
+
+    const result =
+      await supabaseClient.rpc(
+        "back_to_room",
+        {
+          p_room_code:
+            currentRoomCode,
+
+          p_owner_token:
+            currentOwnerToken
         }
+      );
 
-        function confirmRole() {
-            if (isFirebaseConnected) { db.ref('rooms/' + myState.roomId + '/players/' + myState.playerId).update({ confirmed: true }); }
-            else { localDB[myState.roomId].players[myState.playerId].confirmed = true; updateRoomState(localDB[myState.roomId]); }
-            alert("あなたの役職確認を記録しました。全員が確認を終えるまでお待ちください。");
+    if (result.error) {
+      throw result.error;
+    }
+
+    closeDealScreen();
+
+    toast(
+      "部屋に戻りました"
+    );
+
+    await refreshRoom();
+
+  } catch (error) {
+
+    console.error(error);
+
+    toast(
+      getErrorMessage(error)
+    );
+
+  }
+}
+
+
+/* =========================================================
+   部屋から退出
+========================================================= */
+
+async function leaveRoom() {
+
+  if (
+    !currentRoomCode ||
+    !currentPlayerToken
+  ) {
+    return;
+  }
+
+  const ok =
+    confirm(
+      "本当にこの部屋から退出しますか？"
+    );
+
+  if (!ok) {
+    return;
+  }
+
+  showLoading(true);
+
+  try {
+
+    const result =
+      await supabaseClient.rpc(
+        "leave_room",
+        {
+          p_room_code:
+            currentRoomCode,
+
+          p_player_token:
+            currentPlayerToken
         }
+      );
 
-        function resetRoom() {
-            if (isFirebaseConnected) {
-                db.ref('rooms/' + myState.roomId + '/players').once('value', (snapshot) => {
-                    const players = snapshot.val(); Object.keys(players).forEach(pId => { players[pId].role = ""; players[pId].confirmed = false; });
-                    db.ref('rooms/' + myState.roomId).update({ status: 'waiting', players: players });
-                });
-            } else {
-                Object.keys(localDB[myState.roomId].players).forEach(pId => { localDB[myState.roomId].players[pId].role = ""; localDB[myState.roomId].players[pId].confirmed = false; });
-                localDB[myState.roomId].status = 'waiting'; updateRoomState(localDB[myState.roomId]);
-            }
+    if (result.error) {
+      throw result.error;
+    }
+
+    stopPolling();
+
+    localStorage.removeItem(
+      "liora_room_code"
+    );
+
+    localStorage.removeItem(
+      "liora_player_token"
+    );
+
+    localStorage.removeItem(
+      "liora_owner_token"
+    );
+
+    currentRoomCode = null;
+    currentPlayerToken = null;
+    currentOwnerToken = null;
+    currentRole = null;
+    currentIsOwner = false;
+
+    hideAllScreens();
+
+    document
+      .getElementById("homeScreen")
+      .classList.remove("hidden");
+
+    toast(
+      "部屋から退出しました"
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    toast(
+      getErrorMessage(error)
+    );
+
+  } finally {
+
+    showLoading(false);
+
+  }
+}
+
+
+/* =========================================================
+   部屋を解散
+========================================================= */
+
+async function closeRoom() {
+
+  if (!currentIsOwner) {
+    return;
+  }
+
+  const ok =
+    confirm(
+      "本当に部屋を解散しますか？\n\n" +
+      "参加している全員が部屋から出ます。"
+    );
+
+  if (!ok) {
+    return;
+  }
+
+  showLoading(true);
+
+  try {
+
+    const result =
+      await supabaseClient.rpc(
+        "close_room",
+        {
+          p_room_code:
+            currentRoomCode,
+
+          p_owner_token:
+            currentOwnerToken
         }
+      );
 
-        function simulateLocalRoom(roomId) { setInterval(() => { if (!isFirebaseConnected && localDB[roomId]) { updateRoomState(localDB[roomId]); } }, 1000); }
-    </script>
+    if (result.error) {
+      throw result.error;
+    }
+
+    stopPolling();
+
+    localStorage.removeItem(
+      "liora_room_code"
+    );
+
+    localStorage.removeItem(
+      "liora_player_token"
+    );
+
+    localStorage.removeItem(
+      "liora_owner_token"
+    );
+
+    currentRoomCode = null;
+    currentPlayerToken = null;
+    currentOwnerToken = null;
+    currentRole = null;
+    currentIsOwner = false;
+
+    hideAllScreens();
+
+    document
+      .getElementById("homeScreen")
+      .classList.remove("hidden");
+
+    toast(
+      "部屋を解散しました"
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    toast(
+      getErrorMessage(error)
+    );
+
+  } finally {
+
+    showLoading(false);
+
+  }
+}
+
+
+/* =========================================================
+   役職一覧
+========================================================= */
+
+function renderRoleList(
+  elementId
+) {
+
+  const container =
+    document.getElementById(
+      elementId
+    );
+
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = "";
+
+  Object.keys(ROLES).forEach(
+    role => {
+
+      const info =
+        ROLES[role];
+
+      const button =
+        document.createElement("button");
+
+      button.className =
+        "role-card";
+
+      button.onclick = () =>
+        openRoleModal(role);
+
+
+      let imageHtml = "";
+
+      if (info.listImage) {
+
+        imageHtml = `
+          <img
+            src="${info.listImage}"
+            alt="${escapeAttr(role)}"
+            onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+
+          <div class="role-image-placeholder hidden">
+            ${info.emoji}
+          </div>
+        `;
+
+      } else {
+
+        imageHtml = `
+          <div class="role-image-placeholder">
+            ${info.emoji}
+          </div>
+        `;
+
+      }
+
+
+      button.innerHTML = `
+        ${imageHtml}
+
+        <h3>
+          ${escapeHtml(role)}
+        </h3>
+
+        <p>
+          ${escapeHtml(info.team)}
+        </p>
+      `;
+
+      container.appendChild(
+        button
+      );
+
+    }
+  );
+}
+
+
+function showRoleList() {
+
+  hideAllScreens();
+
+  const section =
+    document.getElementById(
+      "roomScreen"
+    );
+
+  section.classList.remove(
+    "hidden"
+  );
+
+  document
+    .querySelector(
+      "#roomScreen .room-header"
+    )
+    .classList.add("hidden");
+
+  document
+    .querySelector(
+      "#roomScreen .room-grid"
+    )
+    .classList.add("hidden");
+
+  document
+    .querySelector(
+      "#roomScreen .roles-title"
+    )
+    .textContent =
+    "役職一覧";
+
+  renderRoleList(
+    "roomRoleList"
+  );
+
+  const back =
+    document.createElement("button");
+
+  back.textContent =
+    "← 戻る";
+
+  back.className =
+    "back-button";
+
+  back.style.marginBottom =
+    "20px";
+
+  back.onclick = () => {
+
+    back.remove();
+
+    goHome();
+
+  };
+
+  section
+    .querySelector(".center")
+    .prepend(back);
+}
+
+
+/* =========================================================
+   役職詳細
+========================================================= */
+
+function openRoleModal(role) {
+
+  const info =
+    ROLES[role];
+
+  if (!info) {
+    return;
+  }
+
+  const content =
+    document.getElementById(
+      "roleModalContent"
+    );
+
+  let imageHtml = "";
+
+  if (info.listImage) {
+
+    imageHtml = `
+      <img
+        class="detail-image"
+        src="${info.listImage}"
+        alt="${escapeAttr(role)}"
+        onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+
+      <div class="detail-placeholder hidden">
+        ${info.emoji}
+      </div>
+    `;
+
+  } else {
+
+    imageHtml = `
+      <div class="detail-placeholder">
+        ${info.emoji}
+      </div>
+    `;
+
+  }
+
+
+  content.innerHTML = `
+    ${imageHtml}
+
+    <h2 style="font-size:32px;margin-bottom:4px;">
+      ${escapeHtml(role)}
+    </h2>
+
+    <div style="opacity:.65;margin-bottom:15px;">
+      ${escapeHtml(info.team)}
+    </div>
+
+    <div class="detail-text">
+      ${escapeHtml(info.description)}
+    </div>
+  `;
+
+  document
+    .getElementById(
+      "roleModal"
+    )
+    .classList.remove("hidden");
+}
+
+
+function closeRoleModal(event) {
+
+  if (
+    event &&
+    event.target !==
+    document.getElementById(
+      "roleModal"
+    )
+  ) {
+    return;
+  }
+
+  document
+    .getElementById(
+      "roleModal"
+    )
+    .classList.add("hidden");
+}
+
+
+/* =========================================================
+   ポーリング
+========================================================= */
+
+function startPolling() {
+
+  stopPolling();
+
+  pollingTimer =
+    setInterval(
+      refreshRoom,
+      1000
+    );
+}
+
+
+function stopPolling() {
+
+  if (pollingTimer) {
+
+    clearInterval(
+      pollingTimer
+    );
+
+    pollingTimer = null;
+
+  }
+}
+
+
+/* =========================================================
+   エラー文章
+========================================================= */
+
+function getErrorMessage(error) {
+
+  if (!error) {
+    return "エラーが発生しました。";
+  }
+
+  const message =
+    error.message || "";
+
+  if (
+    message.includes(
+      "その部屋はありません"
+    )
+  ) {
+    return "その部屋番号の部屋はありません。";
+  }
+
+  if (
+    message.includes(
+      "この部屋は満員です"
+    )
+  ) {
+    return "この部屋は満員です。";
+  }
+
+  if (
+    message.includes(
+      "参加人数と役職数を同じ"
+    )
+  ) {
+    return "参加人数と役職の合計人数を同じにしてください。";
+  }
+
+  if (
+    message.includes(
+      "部屋を作る"
+    )
+  ) {
+    return "部屋を作れませんでした。";
+  }
+
+  if (
+    message.includes(
+      "退出"
+    )
+  ) {
+    return "部屋から退出できませんでした。";
+  }
+
+  if (
+    message.includes(
+      "解散"
+    )
+  ) {
+    return "部屋を解散できませんでした。";
+  }
+
+  return message ||
+    "エラーが発生しました。";
+}
+
+
+/* =========================================================
+   HTMLエスケープ
+========================================================= */
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+function escapeAttr(value) {
+  return escapeHtml(value);
+}
+
+
+/* =========================================================
+   最初の役職一覧
+========================================================= */
+
+renderRoleList(
+  "roomRoleList"
+);
+
+
+/* =========================================================
+   起動時に前回の部屋を復元
+========================================================= */
+
+async function restoreSession() {
+
+  const roomCode =
+    localStorage.getItem(
+      "liora_room_code"
+    );
+
+  const playerToken =
+    localStorage.getItem(
+      "liora_player_token"
+    );
+
+  const ownerToken =
+    localStorage.getItem(
+      "liora_owner_token"
+    );
+
+
+  if (
+    roomCode &&
+    playerToken
+  ) {
+
+    currentRoomCode =
+      roomCode;
+
+    currentPlayerToken =
+      playerToken;
+
+    currentOwnerToken =
+      ownerToken || null;
+
+    currentIsOwner =
+      !!ownerToken;
+
+    await openRoom();
+
+  }
+
+}
+
+
+restoreSession();
+
+</script>
+
 </body>
 </html>

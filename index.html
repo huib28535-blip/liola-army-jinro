@@ -1382,20 +1382,57 @@ async function refreshRoom() {
 
     renderRoom(data);
 
-    if (
+        if (
       data.status === "started" &&
       data.my_role
     ) {
 
+      const overlay =
+        document.getElementById(
+          "dealOverlay"
+        );
+
+      const roleChanged =
+        currentRole !== data.my_role;
+
       currentRole =
         data.my_role;
 
-      showDealScreen(
-        data.my_role,
-        data.my_confirmed
-      );
+      if (
+        overlay.classList.contains("hidden") ||
+        roleChanged
+      ) {
+
+        showDealScreen(
+          data.my_role,
+          data.my_confirmed
+        );
+
+      } else {
+
+        document
+          .getElementById(
+            "confirmRoleButton"
+          )
+          .classList.toggle(
+            "hidden",
+            data.my_confirmed
+          );
+
+        document
+          .getElementById(
+            "confirmedMessage"
+          )
+          .classList.toggle(
+            "hidden",
+            !data.my_confirmed
+          );
+
+      }
 
     } else {
+
+      currentRole = null;
 
       closeDealScreen();
 

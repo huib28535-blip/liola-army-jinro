@@ -763,6 +763,7 @@
             <strong id="roleTotal">0</strong>人
           </div>
 
+          
           <button
             id="startButton"
             class="primary"
@@ -778,6 +779,13 @@
             onclick="backToRoom()">
             部屋に戻る
           </button>
+
+          <button
+  class="primary"
+  style="width:100%;margin-top:10px;"
+  onclick="leaveRoom()">
+  部屋から退出する
+</button>
 
         </div>
 
@@ -2335,6 +2343,71 @@ renderRoleList(
 /* =========================================================
    起動時に前回の部屋を復元
 ========================================================= */
+async function leaveRoom() {
+
+  if (!currentRoomCode || !currentPlayerToken) {
+    return;
+  }
+
+  const ok =
+    confirm("本当に部屋から退出しますか？");
+
+  if (!ok) {
+    return;
+  }
+
+  try {
+
+    const result =
+      await supabaseClient.rpc(
+        "leave_room",
+        {
+          p_player_token:
+            currentPlayerToken,
+
+          p_room_code:
+            currentRoomCode
+        }
+      );
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    stopPolling();
+
+    localStorage.removeItem("liora_room_code");
+    localStorage.removeItem("liora_player_token");
+    localStorage.removeItem("liora_owner_token");
+
+    currentRoomCode = null;
+    currentPlayerToken = null;
+    currentOwnerToken = null;
+    currentIsOwner = false;
+    currentRole = null;
+
+    closeDealScreen();
+
+    document
+      .getElementById("roomScreen")
+      .classList.add("hidden");
+
+    document
+      .getElementById("homeScreen")
+      .classList.remove("hidden");
+
+    toast("部屋から退出しました");
+
+  } catch (error) {
+
+    console.error(error);
+
+    toast(
+      getErrorMessage(error)
+    );
+
+  }
+}
 
 async function restoreSession() {
 

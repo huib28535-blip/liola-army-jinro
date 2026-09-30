@@ -1,4 +1,1201 @@
+完全版!
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>オンライン人狼役職配り</title>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Hiragino Kaku Gothic ProN",
+        "Yu Gothic",
+        sans-serif;
+      background:
+        radial-gradient(circle at top, #2d3857 0%, #121626 45%, #090b12 100%);
+      color: white;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .screen {
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .center {
+      max-width: 850px;
+      margin: 0 auto;
+    }
+
+    /* =========================
+       トップ
+    ========================= */
+
+    .top-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .title-box {
+      text-align: center;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .title-box h1 {
+      font-size: clamp(30px, 8vw, 56px);
+      margin: 0 0 12px;
+      letter-spacing: 2px;
+    }
+
+    .subtitle {
+      opacity: 0.7;
+      margin-bottom: 40px;
+    }
+
+    .main-buttons {
+      display: grid;
+      gap: 14px;
+    }
+
+    .main-button {
+      border: 0;
+      border-radius: 18px;
+      padding: 18px;
+      font-size: 20px;
+      font-weight: bold;
+      color: white;
+      background: #526dff;
+      box-shadow: 0 8px 25px rgba(0,0,0,.25);
+    }
+
+    .main-button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.08);
+    }
+
+    .main-button.secondary {
+      background: #252b40;
+    }
+
+    /* =========================
+       共通カード
+    ========================= */
+
+    .card {
+      background: rgba(22, 27, 45, .88);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 22px;
+      padding: 24px;
+      box-shadow: 0 15px 40px rgba(0,0,0,.25);
+      backdrop-filter: blur(10px);
+    }
+
+    .card h2 {
+      margin-top: 0;
+    }
+
+    .form {
+      display: grid;
+      gap: 14px;
+    }
+
+    input {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: 1px solid #3d4662;
+      background: #111522;
+      color: white;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #6e83ff;
+    }
+
+    .primary {
+      border: 0;
+      border-radius: 14px;
+      padding: 15px;
+      background: #526dff;
+      color: white;
+      font-weight: bold;
+    }
+
+    .back-button {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      background: #292f43;
+      color: white;
+    }
+
+    .error {
+      color: #ff8d8d;
+      background: rgba(255, 80, 80, .1);
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 14px;
+    }
+
+    /* =========================
+       部屋
+    ========================= */
+
+    .room-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 18px;
+    }
+
+    .room-code {
+      font-size: 13px;
+      opacity: .7;
+      text-align: right;
+    }
+
+    .room-code strong {
+      display: block;
+      font-size: 25px;
+      letter-spacing: 4px;
+      opacity: 1;
+    }
+
+    .room-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    @media (max-width: 700px) {
+      .room-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .players {
+      display: grid;
+      gap: 9px;
+      margin-top: 15px;
+    }
+
+    .player {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px;
+      border-radius: 12px;
+      background: #121725;
+    }
+
+    .owner-badge {
+      font-size: 11px;
+      padding: 5px 8px;
+      border-radius: 8px;
+      background: #6656d9;
+    }
+
+    .waiting {
+      color: #aeb7cf;
+      font-size: 14px;
+    }
+
+    /* =========================
+       役職設定
+    ========================= */
+
+    .role-settings {
+      display: grid;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .role-setting {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: #111522;
+      border-radius: 13px;
+    }
+
+    .role-setting-name {
+      font-weight: bold;
+    }
+
+    .role-setting-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .count-button {
+      width: 34px;
+      height: 34px;
+      border: 0;
+      border-radius: 10px;
+      color: white;
+      background: #303850;
+      font-size: 20px;
+    }
+
+    .count {
+      min-width: 24px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .off {
+      opacity: .45;
+    }
+
+    .total-box {
+      margin-top: 15px;
+      padding: 13px;
+      border-radius: 12px;
+      background: #20263a;
+      text-align: center;
+    }
+
+    /* =========================
+       役職一覧
+    ========================= */
+
+    .roles-title {
+      margin-top: 35px;
+    }
+
+    .role-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 650px) {
+      .role-list {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .role-card {
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 18px;
+      padding: 12px;
+      background: #141a2a;
+      color: white;
+      text-align: center;
+      transition: transform .2s;
+      animation: floating 2.8s ease-in-out infinite;
+    }
+
+    .role-card:nth-child(2) {
+      animation-delay: -.5s;
+    }
+
+    .role-card:nth-child(3) {
+      animation-delay: -1s;
+    }
+
+    .role-card:nth-child(4) {
+      animation-delay: -1.5s;
+    }
+
+    .role-card:nth-child(5) {
+      animation-delay: -2s;
+    }
+
+    .role-card:nth-child(6) {
+      animation-delay: -2.5s;
+    }
+
+    .role-card:hover {
+      transform: scale(1.03);
+    }
+
+    @keyframes floating {
+      0%, 100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-6px);
+      }
+    }
+
+    .role-card img,
+    .role-image-placeholder {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 13px;
+      background: #242b40;
+    }
+
+    .role-image-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 50px;
+    }
+
+    .role-card h3 {
+      margin: 10px 0 4px;
+    }
+
+    .role-card p {
+      margin: 0;
+      font-size: 12px;
+      opacity: .65;
+    }
+
+    /* =========================
+       役職詳細
+    ========================= */
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(0,0,0,.72);
+    }
+
+    .modal-card {
+      width: min(560px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      background: #151a2a;
+      border-radius: 25px;
+      padding: 22px;
+      box-shadow: 0 20px 70px rgba(0,0,0,.5);
+    }
+
+    .detail-image {
+      width: 100%;
+      max-height: 360px;
+      object-fit: contain;
+      border-radius: 18px;
+      background: #252b40;
+    }
+
+    .detail-placeholder {
+      width: 100%;
+      height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 100px;
+      background: #252b40;
+      border-radius: 18px;
+    }
+
+    .detail-text {
+      line-height: 1.8;
+      white-space: pre-line;
+      color: #e5e9f4;
+    }
+
+    .close-button {
+      width: 100%;
+      margin-top: 15px;
+      border: 0;
+      border-radius: 13px;
+      padding: 14px;
+      background: #303850;
+      color: white;
+    }
+
+    /* =========================
+       役職配布
+    ========================= */
+
+    .deal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(3,5,10,.96);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: darken .8s ease;
+    }
+
+    @keyframes darken {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .deal-box {
+      width: min(520px, 100%);
+      text-align: center;
+    }
+
+    .deal-intro {
+      font-size: 24px;
+      margin-bottom: 22px;
+    }
+
+    .deal-role {
+      font-size: clamp(38px, 10vw, 64px);
+      font-weight: bold;
+      margin: 18px 0;
+    }
+
+    .deal-image {
+      width: min(380px, 85vw);
+      max-height: 430px;
+      object-fit: contain;
+      border-radius: 20px;
+      background: #1b2133;
+    }
+
+    .deal-placeholder {
+      width: min(380px, 85vw);
+      height: 380px;
+      margin: 0 auto;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1b2133;
+      font-size: 120px;
+    }
+
+    .confirm-button {
+      margin-top: 24px;
+      width: 100%;
+      border: 0;
+      border-radius: 16px;
+      padding: 17px;
+      color: white;
+      background: #526dff;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .confirmed-message {
+      margin-top: 18px;
+      opacity: .7;
+    }
+
+    /* =========================
+       ローディング
+    ========================= */
+
+    .loading {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #090b12;
+    }
+
+    .spinner {
+      width: 45px;
+      height: 45px;
+      border: 4px solid #30374e;
+      border-top-color: #6d80ff;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 25px;
+      transform: translateX(-50%);
+      z-index: 600;
+      background: #252c40;
+      padding: 13px 18px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.3);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- =========================
+       ローディング
+  ========================= -->
+
+  <div id="loading" class="loading hidden">
+    <div class="spinner"></div>
+  </div>
+
+
+  <!-- =========================
+       トップ画面
+  ========================= -->
+
+  <section id="homeScreen" class="screen top-screen">
+    <div class="title-box">
+
+      <h1>オンライン人狼役職配り</h1>
+
+      <div class="subtitle">
+        リオラ軍団
+      </div>
+
+      <div class="main-buttons">
+
+        <button
+          class="main-button"
+          onclick="showCreateScreen()">
+          部屋を作る
+        </button>
+
+        <button
+          class="main-button secondary"
+          onclick="showJoinScreen()">
+          部屋番号を入力して参加
+        </button>
+
+        <button
+          class="main-button secondary"
+          onclick="showRoleList()">
+          役職一覧を見る
+        </button>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- =========================
+       作成
+  ========================= -->
+
+  <section id="createScreen" class="screen hidden">
+    <div class="center">
+
+      <button
+        class="back-button"
+        onclick="goHome()">
+        ← 戻る
+      </button>
+
+      <div class="card" style="margin-top:20px;">
+
+        <h2>部屋を作る</h2>
+
+        <div class="form">
+
+          <input
+            id="createName"
+            maxlength="20"
+            placeholder="あなたの名前">
+
+          <button
+            class="primary"
+            onclick="createRoom()">
+            部屋を作成
+          </button>
+
+        </div>
+
+        <div
+          id="createError"
+          class="error hidden"
+          style="margin-top:12px;">
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- =========================
+       参加
+  ========================= -->
+
+  <section id="joinScreen" class="screen hidden">
+    <div class="center">
+
+      <button
+        class="back-button"
+        onclick="goHome()">
+        ← 戻る
+      </button>
+
+      <div class="card" style="margin-top:20px;">
+
+        <h2>部屋に参加</h2>
+
+        <div class="form">
+
+          <input
+            id="joinName"
+            maxlength="20"
+            placeholder="あなたの名前">
+
+          <input
+            id="joinCode"
+            maxlength="4"
+            inputmode="numeric"
+            placeholder="4桁の部屋番号">
+
+          <button
+            class="primary"
+            onclick="joinRoom()">
+            参加する
+          </button>
+
+        </div>
+
+        <div
+          id="joinError"
+          class="error hidden"
+          style="margin-top:12px;">
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- =========================
+       部屋
+  ========================= -->
+
+  <section id="roomScreen" class="screen hidden">
+
+    <div class="center">
+
+      <div class="room-header">
+
+        <div>
+          <h1 style="margin:0;">待機部屋</h1>
+          <div id="roomStatusText" class="waiting">
+            オーナーが設定しています
+          </div>
+        </div>
+
+        <div class="room-code">
+          部屋番号
+          <strong id="roomCodeText">----</strong>
+        </div>
+
+      </div>
+
+
+      <div class="room-grid">
+
+        <!-- 参加者 -->
+
+        <div class="card">
+
+          <h2>
+            参加者
+            <span id="playerCount">0</span>人
+          </h2>
+
+          <div id="playersList" class="players"></div>
+
+        </div>
+
+
+        <!-- オーナー設定 -->
+
+        <div
+          id="ownerPanel"
+          class="card hidden">
+
+          <h2>設定</h2>
+
+          <div
+            id="roleSettings"
+            class="role-settings">
+          </div>
+
+          <div class="total-box">
+            必要人数：
+            <strong id="roleTotal">0</strong>人
+          </div>
+
+          <button
+            id="startButton"
+            class="primary"
+            style="width:100%;margin-top:15px;"
+            onclick="startGame()">
+            ゲーム開始
+          </button>
+
+          <button
+            id="returnButton"
+            class="primary hidden"
+            style="width:100%;margin-top:10px;"
+            onclick="backToRoom()">
+            部屋に戻る
+          </button>
+
+        </div>
+
+
+        <!-- 参加者側 -->
+
+        <div
+          id="guestPanel"
+          class="card hidden">
+
+          <h2>参加者</h2>
+
+          <p class="waiting">
+            オーナーが設定しています
+          </p>
+
+          <p>
+            ゲームが開始されると、
+            あなたの役職が表示されます。
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <!-- 役職一覧 -->
+
+      <h2 class="roles-title">
+        役職一覧
+      </h2>
+
+      <div
+        id="roomRoleList"
+        class="role-list">
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- =========================
+       役職詳細モーダル
+  ========================= -->
+
+  <div
+    id="roleModal"
+    class="modal hidden"
+    onclick="closeRoleModal(event)">
+
+    <div class="modal-card">
+
+      <div id="roleModalContent"></div>
+
+      <button
+        class="close-button"
+        onclick="closeRoleModal()">
+        閉じる
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================
+       役職配布
+  ========================= -->
+
+  <div
+    id="dealOverlay"
+    class="deal-overlay hidden">
+
+    <div class="deal-box">
+
+      <div class="deal-intro">
+        あなたの役職は、、、
+      </div>
+
+      <div id="dealContent"></div>
+
+      <button
+        id="confirmRoleButton"
+        class="confirm-button"
+        onclick="confirmMyRole()">
+        この役職を確認する
+      </button>
+
+      <div
+        id="confirmedMessage"
+        class="confirmed-message hidden">
+        確認しました。ほかの人を待っています……
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div id="toast" class="toast hidden"></div>
+
+
+<script>
+/* =========================================================
+   Supabase設定
+========================================================= */
+
+const SUPABASE_URL =
+  "https://bduxxzvavgknaxnmvtbv.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_qvHMK89PQngzq72Ttn9aZA_BfkThD4W";
+
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+
+/* =========================================================
+   役職データ
+========================================================= */
+
+const ROLES = {
+
+  "人狼": {
+    team: "人狼陣営",
+    short: "わざと自分のチームを負けさせる",
+    description:
+`人狼陣営
+
+わざと自分のチームを負けさせれば勝ち。
+
+【ポイント】
+試合に勝利 -1
+バレずに試合に敗北 +3
+バレて試合に敗北 +1`,
+    listImage: "assets/jinrou-list.png",
+    dealImage: "assets/jinrou-deal.png",
+    emoji: "🐺"
+  },
+
+  "狂人": {
+    team: "人狼、第3陣営",
+    short: "自分に最も多く票を集める",
+    description:
+`人狼、第3陣営
+
+自分に最も多く票を集めれば勝ち。
+
+【ポイント】
+最も票を集める +4`,
+    emoji: "🤡"
+  },
+
+  "村人": {
+    team: "村人陣営",
+    short: "味方と協力して人狼を見つける",
+    description:
+`村人陣営
+
+味方と協力し試合に勝ち、
+人狼を見つけ出したら勝ち。
+
+【ポイント】
+試合に勝利 +2`,
+    listImage: "assets/murabito-list.png",
+    dealImage: "assets/murabito-deal.png",
+    emoji: "👤"
+  },
+
+  "占い師": {
+    team: "村人陣営",
+    short: "7キルで1人の役職を発表",
+    description:
+`村人陣営
+
+味方と協力し試合に勝ち、
+人狼を見つけ出したら勝ち。
+
+【能力】
+7キルしたら発動。
+指定した1人の役職を
+その場で発表してもらう。
+
+【ポイント】
+試合に勝利 +2`,
+    emoji: "🔮"
+  },
+
+  "裁判官": {
+    team: "村人陣営",
+    short: "5キルで裁判官の能力を発動",
+    description:
+`村人陣営
+
+味方と協力し試合に勝ち、
+人狼を見つけ出したら勝ち。
+
+【能力】
+5キルしたら発動。
+
+1試合目と2試合目の間のみ
+発動可能。
+
+票が多かった人は
+次の試合に参加できない。
+
+また、人狼が1人で
+人狼が釣られた場合、
+その場で終了となり、
+村人陣営に1ポイント入る。
+
+【ポイント】
+試合に勝利 +2`,
+    emoji: "⚖️"
+  },
+
+  "スペシャルマン": {
+    team: "第三陣営",
+    short: "ポイントを集める役職",
+    description:
+`第三陣営
+
+ポイントを集めるための役職。
+
+第三陣営なので、
+人狼、村人、
+どちらに付いても良い。
+
+【ポイント】
+2試合ではいた
+スペシャルの数がポイントになる。`,
+    emoji: "⭐"
+  }
+
+};
+
+
+/* =========================================================
+   状態
+========================================================= */
+
+let currentRoomCode = null;
+let currentPlayerToken = null;
+let currentOwnerToken = null;
+let currentRole = null;
+let currentIsOwner = false;
+let pollingTimer = null;
+let lastStatus = null;
+
+
+/* =========================================================
+   画面切り替え
+========================================================= */
+
+function hideAllScreens() {
+
+  document
+    .querySelectorAll(".screen")
+    .forEach(el => {
+      el.classList.add("hidden");
+    });
+}
+
+
+function goHome() {
+
+  stopPolling();
+
+  currentRoomCode = null;
+  currentPlayerToken = null;
+  currentOwnerToken = null;
+  currentRole = null;
+
+  hideAllScreens();
+
+  document
+    .getElementById("homeScreen")
+    .classList.remove("hidden");
+}
+
+
+function showCreateScreen() {
+
+  hideAllScreens();
+
+  document
+    .getElementById("createScreen")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("createName")
+    .focus();
+}
+
+
+function showJoinScreen() {
+
+  hideAllScreens();
+
+  document
+    .getElementById("joinScreen")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("joinName")
+    .focus();
+}
+
+
+/* =========================================================
+   ローディング
+========================================================= */
+
+function showLoading(show) {
+
+  document
+    .getElementById("loading")
+    .classList.toggle(
+      "hidden",
+      !show
+    );
+}
+
+
+/* =========================================================
+   エラー
+========================================================= */
+
+function showError(id, message) {
+
+  const el =
+    document.getElementById(id);
+
+  el.textContent = message;
+  el.classList.remove("hidden");
+}
+
+
+function clearError(id) {
+
+  document
+    .getElementById(id)
+    .classList.add("hidden");
+}
+
+
+/* =========================================================
+   トースト
+========================================================= */
+
+let toastTimer;
+
+function toast(message) {
+
+  const el =
+    document.getElementById("toast");
+
+  el.textContent = message;
+  el.classList.remove("hidden");
+
+  clearTimeout(toastTimer);
+
+  toastTimer = setTimeout(() => {
+    el.classList.add("hidden");
+  }, 2500);
+}
+
+
+/* =========================================================
+   部屋を作る
+========================================================= */
+
+async function createRoom() {
+
+  clearError("createError");
+
+  const name =
+    document
+      .getElementById("createName")
+      .value
+      .trim();
+
+  if (!name) {
+    showError(
+      "createError",
+      "名前を入力してください。"
+    );
+    return;
+  }
+
+  showLoading(true);
+
+  try {
+
+    const { data, error } =
+      await supabaseClient.rpc(
+        "create_room",
+        {
+          p_player_name: name
+        }
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    currentRoomCode =
+      data.room_code;
+
+    currentPlayerToken =
+      data.player_token;
+
+    currentOwnerToken =
+      data.owner_token;
 
     currentIsOwner = true;
 
@@ -44,22 +1241,18 @@ async function joinRoom() {
       .trim();
 
   if (!name) {
-
     showError(
       "joinError",
       "名前を入力してください。"
     );
-
     return;
   }
 
   if (!/^\d{4}$/.test(code)) {
-
     showError(
       "joinError",
       "4桁の部屋番号を入力してください。"
     );
-
     return;
   }
 
@@ -208,6 +1401,8 @@ async function refreshRoom() {
 
     }
 
+    lastStatus = data.status;
+
   } catch (error) {
 
     console.error(error);
@@ -258,8 +1453,9 @@ function renderRoom(data) {
       const right =
         document.createElement("span");
 
-
-      if (index === 0) {
+      if (
+        index === 0
+      ) {
 
         right.textContent =
           "オーナー";
@@ -289,37 +1485,6 @@ function renderRoom(data) {
   );
 
 
-  /* =========================
-     退出・解散ボタン
-  ========================= */
-
-  if (data.is_owner) {
-
-    document
-      .getElementById("ownerCloseArea")
-      .classList.remove("hidden");
-
-    document
-      .getElementById("guestLeaveArea")
-      .classList.add("hidden");
-
-  } else {
-
-    document
-      .getElementById("ownerCloseArea")
-      .classList.add("hidden");
-
-    document
-      .getElementById("guestLeaveArea")
-      .classList.remove("hidden");
-
-  }
-
-
-  /* =========================
-     オーナー・参加者パネル
-  ========================= */
-
   if (data.is_owner) {
 
     document
@@ -343,10 +1508,6 @@ function renderRoom(data) {
         .classList.add("hidden");
 
       document
-        .getElementById("startInfo")
-        .classList.add("hidden");
-
-      document
         .getElementById("returnButton")
         .classList.remove("hidden");
 
@@ -357,14 +1518,8 @@ function renderRoom(data) {
         .classList.remove("hidden");
 
       document
-        .getElementById("startInfo")
-        .classList.remove("hidden");
-
-      document
         .getElementById("returnButton")
         .classList.add("hidden");
-
-      updateStartButton(data);
 
     }
 
@@ -380,10 +1535,6 @@ function renderRoom(data) {
 
   }
 
-
-  /* =========================
-     状態表示
-  ========================= */
 
   if (
     data.status === "waiting"
@@ -402,66 +1553,6 @@ function renderRoom(data) {
       .getElementById("roomStatusText")
       .textContent =
       "ゲーム中";
-
-  }
-}
-
-
-/* =========================================================
-   ゲーム開始ボタンの状態
-========================================================= */
-
-function updateStartButton(data) {
-
-  if (!data.is_owner) {
-    return;
-  }
-
-  const settings =
-    data.settings || {};
-
-  const playerCount =
-    data.players.length;
-
-  let roleTotal = 0;
-
-  Object.keys(ROLES).forEach(role => {
-
-    roleTotal +=
-      Number(settings[role] || 0);
-
-  });
-
-
-  const button =
-    document.getElementById(
-      "startButton"
-    );
-
-  const info =
-    document.getElementById(
-      "startInfo"
-    );
-
-
-  if (
-    roleTotal === playerCount &&
-    playerCount > 0
-  ) {
-
-    button.disabled = false;
-    button.style.opacity = "1";
-
-    info.textContent =
-      `準備OK！ ${playerCount}人でゲームを始められます 🎮`;
-
-  } else {
-
-    button.disabled = true;
-    button.style.opacity = ".5";
-
-    info.textContent =
-      `参加者 ${playerCount}人 / 役職 ${roleTotal}人`;
 
   }
 }
@@ -603,8 +1694,6 @@ async function changeRoleCount(
 
     renderSettings(settings);
 
-    await refreshRoom();
-
   } catch (error) {
 
     console.error(error);
@@ -697,7 +1786,6 @@ function showDealScreen(
         src="${info.dealImage}"
         alt="${escapeAttr(role)}"
         onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
-
       <div class="deal-placeholder hidden">
         ${info.emoji}
       </div>
@@ -859,180 +1947,6 @@ async function backToRoom() {
     toast(
       getErrorMessage(error)
     );
-
-  }
-}
-
-
-/* =========================================================
-   部屋から退出
-========================================================= */
-
-async function leaveRoom() {
-
-  if (
-    !currentRoomCode ||
-    !currentPlayerToken
-  ) {
-    return;
-  }
-
-  const ok =
-    confirm(
-      "本当にこの部屋から退出しますか？"
-    );
-
-  if (!ok) {
-    return;
-  }
-
-  showLoading(true);
-
-  try {
-
-    const result =
-      await supabaseClient.rpc(
-        "leave_room",
-        {
-          p_room_code:
-            currentRoomCode,
-
-          p_player_token:
-            currentPlayerToken
-        }
-      );
-
-    if (result.error) {
-      throw result.error;
-    }
-
-    stopPolling();
-
-    localStorage.removeItem(
-      "liora_room_code"
-    );
-
-    localStorage.removeItem(
-      "liora_player_token"
-    );
-
-    localStorage.removeItem(
-      "liora_owner_token"
-    );
-
-    currentRoomCode = null;
-    currentPlayerToken = null;
-    currentOwnerToken = null;
-    currentRole = null;
-    currentIsOwner = false;
-
-    hideAllScreens();
-
-    document
-      .getElementById("homeScreen")
-      .classList.remove("hidden");
-
-    toast(
-      "部屋から退出しました"
-    );
-
-  } catch (error) {
-
-    console.error(error);
-
-    toast(
-      getErrorMessage(error)
-    );
-
-  } finally {
-
-    showLoading(false);
-
-  }
-}
-
-
-/* =========================================================
-   部屋を解散
-========================================================= */
-
-async function closeRoom() {
-
-  if (!currentIsOwner) {
-    return;
-  }
-
-  const ok =
-    confirm(
-      "本当に部屋を解散しますか？\n\n" +
-      "参加している全員が部屋から出ます。"
-    );
-
-  if (!ok) {
-    return;
-  }
-
-  showLoading(true);
-
-  try {
-
-    const result =
-      await supabaseClient.rpc(
-        "close_room",
-        {
-          p_room_code:
-            currentRoomCode,
-
-          p_owner_token:
-            currentOwnerToken
-        }
-      );
-
-    if (result.error) {
-      throw result.error;
-    }
-
-    stopPolling();
-
-    localStorage.removeItem(
-      "liora_room_code"
-    );
-
-    localStorage.removeItem(
-      "liora_player_token"
-    );
-
-    localStorage.removeItem(
-      "liora_owner_token"
-    );
-
-    currentRoomCode = null;
-    currentPlayerToken = null;
-    currentOwnerToken = null;
-    currentRole = null;
-    currentIsOwner = false;
-
-    hideAllScreens();
-
-    document
-      .getElementById("homeScreen")
-      .classList.remove("hidden");
-
-    toast(
-      "部屋を解散しました"
-    );
-
-  } catch (error) {
-
-    console.error(error);
-
-    toast(
-      getErrorMessage(error)
-    );
-
-  } finally {
-
-    showLoading(false);
 
   }
 }
@@ -1273,6 +2187,7 @@ function closeRoleModal(event) {
 
 /* =========================================================
    ポーリング
+   1秒ごとに部屋を確認
 ========================================================= */
 
 function startPolling() {
@@ -1344,22 +2259,6 @@ function getErrorMessage(error) {
     )
   ) {
     return "部屋を作れませんでした。";
-  }
-
-  if (
-    message.includes(
-      "退出"
-    )
-  ) {
-    return "部屋から退出できませんでした。";
-  }
-
-  if (
-    message.includes(
-      "解散"
-    )
-  ) {
-    return "部屋を解散できませんでした。";
   }
 
   return message ||

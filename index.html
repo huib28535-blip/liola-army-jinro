@@ -1421,7 +1421,13 @@ async function refreshRoom() {
   data.players.length
 );
 
-      } else {
+            } else {
+
+        const everyoneConfirmed =
+          data.players.length > 0 &&
+          data.players.every(
+            player => player.confirmed
+          );
 
         document
           .getElementById(
@@ -1438,10 +1444,24 @@ async function refreshRoom() {
           )
           .classList.toggle(
             "hidden",
-            !data.my_confirmed
+            data.my_confirmed &&
+            currentIsOwner &&
+            everyoneConfirmed
+          );
+
+        document
+          .getElementById(
+            "soloReturnButton"
+          )
+          .classList.toggle(
+            "hidden",
+            !(data.players.length === 1 ||
+              (currentIsOwner && everyoneConfirmed))
           );
 
       }
+
+        
 
     } else {
 

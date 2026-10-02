@@ -880,7 +880,13 @@
         class="confirmed-message hidden">
         確認しました。ほかの人を待っています……
       </div>
-
+<button
+  id="soloReturnButton"
+  class="confirm-button hidden"
+  onclick="backToRoom()">
+  部屋に戻る
+</button>
+      
     </div>
 
   </div>
@@ -1410,9 +1416,10 @@ async function refreshRoom() {
       ) {
 
         showDealScreen(
-          data.my_role,
-          data.my_confirmed
-        );
+  data.my_role,
+  data.my_confirmed,
+  data.players.length
+);
 
       } else {
 
@@ -1798,8 +1805,10 @@ async function startGame() {
 ========================================================= */
 
 function showDealScreen(
-  role,
-  confirmed
+  
+role,
+  confirmed,
+  playerCount
 ) {
 
   const overlay =
@@ -1878,12 +1887,32 @@ function showDealScreen(
     );
 
 
-  overlay.classList.remove(
-    "hidden"
-  );
+  
+  const isSolo = playerCount === 1;
+
+  document
+    .getElementById("confirmRoleButton")
+    .classList.toggle(
+      "hidden",
+      isSolo || confirmed
+    );
+
+  document
+    .getElementById("confirmedMessage")
+    .classList.toggle(
+      "hidden",
+      isSolo || !confirmed
+    );
+
+  document
+    .getElementById("soloReturnButton")
+    .classList.toggle(
+      "hidden",
+      !isSolo
+    );
+
+  overlay.classList.remove("hidden");
 }
-
-
 function closeDealScreen() {
 
   document

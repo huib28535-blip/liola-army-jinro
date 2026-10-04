@@ -1,0 +1,117 @@
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>軍団の皆様へ</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: sans-serif;
+      background: radial-gradient(circle at top, #2d3857 0%, #121626 55%, #090b12 100%);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 480px;
+      padding: 28px;
+      border-radius: 22px;
+      background: rgba(22, 27, 45, .92);
+      border: 1px solid rgba(255,255,255,.1);
+      text-align: center;
+    }
+
+    h1 { font-size: 26px; }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      margin: 14px 0;
+      border-radius: 12px;
+      border: 1px solid #3d4662;
+      background: #111522;
+      color: white;
+      font-size: 16px;
+    }
+
+    button, .back {
+      display: inline-block;
+      border: 0;
+      border-radius: 12px;
+      padding: 13px 18px;
+      background: #526dff;
+      color: white;
+      font-weight: bold;
+      font-size: 15px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .back {
+      margin-top: 18px;
+      background: #292f43;
+    }
+
+    #message { margin-top: 20px; }
+
+    .error { color: #ff9999; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="login">
+      <h1>軍団の皆様へ</h1>
+      <p>パスワードを入力してください</p>
+
+      <input
+        type="password"
+        id="password"
+        placeholder="パスワード"
+      >
+
+      <button onclick="checkPassword()">
+        入室する
+      </button>
+
+      <p id="error" class="error"></p>
+    </div>
+
+    <div id="message" hidden>
+      <h1>軍団の皆様へ</h1>
+      <p>ここに皆様へのメッセージを書こう！</p>
+    </div>
+
+    <a class="back" href="index.html">
+      ホームに戻る
+    </a>
+  </div>
+
+  <script>
+    // 自分で決めたパスワードに変更してね
+    const PASSWORD = "3113";
+
+    function checkPassword() {
+      const input =
+        document.getElementById("password").value;
+
+      if (input === PASSWORD) {
+        document.getElementById("login").hidden = true;
+        document.getElementById("message").hidden = false;
+      } else {
+        document.getElementById("error").textContent =
+          "パスワードが違います";
+      }
+    }
+  </script>
+</body>
+</html>
+```
